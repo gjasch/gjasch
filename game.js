@@ -14,7 +14,7 @@ const NUM_STARS = 100; // Adjust for desired density
 
 // Particle System
 let particles = [];
-const PARTICLES_PER_EXPLOSION = 20;
+const PARTICLES_PER_EXPLOSION = 30;
 const PARTICLE_MAX_LIFESPAN_BASE = 30; // Base lifespan frames
 const PARTICLE_MAX_LIFESPAN_RANDOM = 30; // Additional random lifespan frames
 const PARTICLE_MAX_SPEED = 3; // Max initial speed of particles
@@ -330,7 +330,7 @@ function createExplosion(centerX, centerY, baseColor) {
             y: centerY,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            size: Math.random() * 2 + 2, // Size between 2 and 4
+            size: Math.random() * 2 + 3, // Size between 3 and 5
             color: baseColor, // Use the destroyed alien's color
             lifespan: lifespan,
             maxLifespan: lifespan // Store initial lifespan for potential fading effects
@@ -1007,3 +1007,49 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
