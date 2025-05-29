@@ -354,17 +354,17 @@ function drawLevelCompleteMessage(ctx) {
     ctx.textAlign = "center";
     ctx.fillText("Level " + (currentLevel -1) + " Complete!", canvas.width / 2, canvas.height / 2 - 20);
     ctx.font = "24px Arial";
-    ctx.fillText("Prepare for Level " + currentLevel, canvas.width / 2, canvas.height / 2 + 20);
+    ctx.fillText("Get ready for next level!", canvas.width / 2, canvas.height / 2 + 20);
     ctx.textAlign = "left"; 
 
-    const buttonWidth = 200;
+    const newButtonWidth = 260; // Increased width for padding
     // const buttonHeight = 50; // Standard button height is already globally defined
     readyButtonLevelComplete = {
-        x: canvas.width / 2 - buttonWidth / 2, // Centered
-        y: canvas.height / 2 + 60, // Positioned below the "Prepare for Level" text
-        width: buttonWidth,
-        height: buttonHeight, // Using global buttonHeight
-        label: "Ready for Level " + currentLevel + "?"
+        x: canvas.width / 2 - newButtonWidth / 2, // Recalculate x to stay centered
+        y: canvas.height / 2 + 60, // y position can remain the same or be adjusted if needed
+        width: newButtonWidth,
+        height: buttonHeight, // Uses global buttonHeight
+        label: "Start Level " + currentLevel // New label
     };
     drawButton(readyButtonLevelComplete); // Use the existing drawButton helper
 }
