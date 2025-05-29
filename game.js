@@ -174,14 +174,29 @@ function initializeEnemies() {
   enemies = [];
   enemyDirection = 1;
   enemyMoveDown = 0;
-  for (let row = 0; row < enemyConfig.rows; row++) {
-    for (let col = 0; col < enemyConfig.cols; col++) {
+
+  const baseRows = enemyConfig.rows; // e.g., 3
+  let additionalRows = Math.floor((currentLevel - 1) / 4);
+  additionalRows = Math.min(additionalRows, 4); // Max 4 additional rows
+  const currentEnemyRows = baseRows + additionalRows;
+
+  const baseCols = enemyConfig.cols; // e.g., 8
+  let additionalCols = Math.floor((currentLevel - 1) / 8);
+  additionalCols = Math.min(additionalCols, 2); // Max 2 additional columns
+  const currentEnemyCols = baseCols + additionalCols;
+
+  const currentGridWidth = currentEnemyCols * enemyConfig.width + (currentEnemyCols - 1) * enemyConfig.padding;
+  let dynamicMarginLeft = (canvas.width - currentGridWidth) / 2;
+  dynamicMarginLeft = Math.max(10, dynamicMarginLeft); // Prevent negative margin, ensure at least 10px
+
+  for (let row = 0; row < currentEnemyRows; row++) {
+    for (let col = 0; col < currentEnemyCols; col++) {
       const typeIndex = row % alienTypeKeys.length; 
       const enemyTypeKey = alienTypeKeys[typeIndex];
       const enemyPatternData = alienShapePatterns[enemyTypeKey];
 
       enemies.push({
-        x: enemyConfig.marginLeft + col * (enemyConfig.width + enemyConfig.padding),
+        x: dynamicMarginLeft + col * (enemyConfig.width + enemyConfig.padding),
         y: enemyConfig.marginTop + row * (enemyConfig.height + enemyConfig.padding),
         width: enemyConfig.width,
         height: enemyConfig.height,
@@ -358,10 +373,10 @@ function drawLevelCompleteMessage(ctx) {
     ctx.textAlign = "center";
     ctx.fillText("Level " + (currentLevel -1) + " Complete!", canvas.width / 2, canvas.height / 2 - 20);
     ctx.font = "24px Arial";
-    ctx.fillText("Get ready for next level!", canvas.width / 2, canvas.height / 2 + 20);
+    ctx.fillText("Ready for next wave?", canvas.width / 2, canvas.height / 2 + 20);
     ctx.textAlign = "left"; 
 
-    const newButtonWidth = 260; // Increased width for padding
+    const newButtonWidth = 280; // Increased width for padding
     // const buttonHeight = 50; // Standard button height is already globally defined
     readyButtonLevelComplete = {
         x: canvas.width / 2 - newButtonWidth / 2, // Recalculate x to stay centered
@@ -403,7 +418,7 @@ function drawTitleScreen() {
   context.textBaseline = 'alphabetic';
   context.fillText('Space Invaders', canvas.width / 2, canvas.height / 3);
 
-  const startButtonWidth = 300;
+  const startButtonWidth = 340;
   startButton = {
     x: (canvas.width - startButtonWidth) / 2,
     y: canvas.height / 2 - buttonHeight - buttonPadding / 2,
@@ -413,7 +428,7 @@ function drawTitleScreen() {
   };
   drawButton(startButton);
 
-  const settingsButtonWidth = 200;
+  const settingsButtonWidth = 240;
   settingsButton = {
     x: (canvas.width - settingsButtonWidth) / 2,
     y: canvas.height / 2 + buttonPadding / 2,
@@ -445,7 +460,7 @@ function drawSettingsScreen() {
   };
   drawButton(onScreenControlsToggleButton);
   
-  const backButtonWidth = 150;
+  const backButtonWidth = 190;
   backButton = {
     x: (canvas.width - backButtonWidth) / 2,
     y: canvas.height / 2 + buttonPadding / 2 + 20,
@@ -902,9 +917,9 @@ function gameLoop() {
     
     // Define and draw Continue button
     const continueButtonGameOver = {
-        x: canvas.width / 2 - 100, // Centered
+        x: canvas.width / 2 - (340 / 2), // Centered
         y: canvas.height / 2 + 40, // Below "Game Over" text slightly adjusted
-        width: 200,
+        width: 340,
         height: 40, // Specific height for this button
         label: "Continue (Level " + currentLevel + ")"
     };
@@ -912,9 +927,9 @@ function gameLoop() {
 
     // Define and draw Return to Menu button (adjust Y to be below Continue)
     gameOverToTitleButton = { // Update global object for hit detection
-        x: canvas.width / 2 - 100, // Centered
+        x: canvas.width / 2 - (280 / 2), // Centered
         y: canvas.height / 2 + 40 + continueButtonGameOver.height + 10, // Below continue button
-        width: 200, // Same width as continue for alignment
+        width: 280, // Same width as continue for alignment
         height: 40, // Specific height
         label: "Return to Menu"
     };
@@ -928,3 +943,49 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
