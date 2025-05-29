@@ -330,7 +330,7 @@ function createExplosion(centerX, centerY, baseColor) {
             y: centerY,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            size: Math.random() * 2 + 1, // Size between 1 and 3
+            size: Math.random() * 2 + 2, // Size between 2 and 4
             color: baseColor, // Use the destroyed alien's color
             lifespan: lifespan,
             maxLifespan: lifespan // Store initial lifespan for potential fading effects
@@ -1007,3 +1007,49 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
