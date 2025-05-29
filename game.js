@@ -7,7 +7,6 @@ let highScore = 0;
 
 // Level variables
 let currentLevel = 1;
-let levelCompleteDisplayUntil = 0;
 
 // Player properties
 const player = {
@@ -116,7 +115,8 @@ let startButton = {};
 let settingsButton = {};
 let onScreenControlsToggleButton = {};
 let backButton = {};
-let gameOverToTitleButton = {}; 
+let gameOverToTitleButton = {};
+let readyButtonLevelComplete = {}; 
 // continueButtonGameOver will be defined locally in drawing/click handling for game over
 
 const buttonHeight = 50; // General button height for menu buttons
@@ -356,6 +356,17 @@ function drawLevelCompleteMessage(ctx) {
     ctx.font = "24px Arial";
     ctx.fillText("Prepare for Level " + currentLevel, canvas.width / 2, canvas.height / 2 + 20);
     ctx.textAlign = "left"; 
+
+    const buttonWidth = 200;
+    // const buttonHeight = 50; // Standard button height is already globally defined
+    readyButtonLevelComplete = {
+        x: canvas.width / 2 - buttonWidth / 2, // Centered
+        y: canvas.height / 2 + 60, // Positioned below the "Prepare for Level" text
+        width: buttonWidth,
+        height: buttonHeight, // Using global buttonHeight
+        label: "Ready for Level " + currentLevel + "?"
+    };
+    drawButton(readyButtonLevelComplete); // Use the existing drawButton helper
 }
 
 
@@ -532,6 +543,20 @@ canvas.addEventListener('click', function(event) {
     } else if (isInside(mousePos, gameOverToTitleButton)) {
         // Score and level reset will happen when startGame(false) is called from title.
         gameState = "title";
+    }
+  } else if (gameState === "levelComplete") {
+    // const mousePos = getMousePos(canvas, event); // mousePos is already available in this scope
+
+    // readyButtonLevelComplete is global and its properties (x, y, width, height)
+    // are updated by drawLevelCompleteMessage before this click could occur for that screen.
+    if (isInside(mousePos, readyButtonLevelComplete)) {
+        // Logic to start the next level
+        initializeEnemies();    // Uses currentLevel which should have been incremented
+        initializeBarriers();   // Reset barriers
+        resetPlayerPosition();  // Reset player's position and movement flags
+        bullets = [];           // Clear player bullets
+        enemyBullets = [];      // Clear enemy bullets
+        gameState = "playing";  // Transition to playing state
     }
   }
 });
@@ -798,7 +823,6 @@ function checkGameConditions() {
   if (enemies.every(enemy => !enemy.alive)) {
     currentLevel++; // Increment current level
     gameState = "levelComplete";
-    levelCompleteDisplayUntil = Date.now() + 3000;
     // gameWon = false; // This should be false until player beats all levels
   }
 }
@@ -810,15 +834,8 @@ function gameLoop() {
   } else if (gameState === "settings") {
     drawSettingsScreen();
   } else if (gameState === "levelComplete") {
-    drawLevelCompleteMessage(context); // currentLevel is already incremented for "Prepare for Level X"
-    if (Date.now() > levelCompleteDisplayUntil) {
-        initializeEnemies(); 
-        initializeBarriers(); 
-        resetPlayerPosition();
-        bullets = [];
-        enemyBullets = [];
-        gameState = "playing";
-    }
+    drawLevelCompleteMessage(context);
+    // The logic to start the next level will be triggered by a button click later.
   } else if (gameState === "playing") {
     handleGamepadInput(); 
     enemyShoot(); 
@@ -879,3 +896,49 @@ function gameLoop() {
 }
 
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
