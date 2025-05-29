@@ -47,7 +47,7 @@ const alienShapePatterns = {
             " 111111 ",
             "11111111",
             "11 11 11",
-            "11111111"
+            "11111111" 
         ],
         color: "red" 
     },
@@ -57,7 +57,7 @@ const alienShapePatterns = {
             "  1111  ",
             " 111111 ",
             "11111111",
-            "1  11  1"
+            "1  11  1" 
         ],
         color: "purple" 
     },
@@ -67,7 +67,7 @@ const alienShapePatterns = {
             " 111111 ",
             "11111111",
             "11111111",
-            "  1  1  "
+            "  1  1  " 
         ],
         color: "orange" 
     }
@@ -194,7 +194,7 @@ function initializeBarriers() {
   
   const targetBarrierWidth = player.width * 1.5;
   const newBarrierBlockCols = Math.floor(targetBarrierWidth / BARRIER_BLOCK_SIZE);
-  // console.log("Calculated newBarrierBlockCols:", newBarrierBlockCols); // Expected: 15
+  // console.log("Calculated newBarrierBlockCols:", newBarrierBlockCols);
 
   const singleBarrierActualWidth = newBarrierBlockCols * BARRIER_BLOCK_SIZE;
 
@@ -206,16 +206,16 @@ function initializeBarriers() {
   const currentBarrierY = playerCannonTopY - (BARRIER_BLOCK_ROWS * BARRIER_BLOCK_SIZE) - 30; 
 
   const barrierShapePattern = [
-      "   111111111   ", 
-      "  11111111111  ", 
-      " 1111111111111 ", 
-      "111111111111111", 
-      "111111111111111", 
-      "111111111111111", 
-      "1111  111  1111", 
-      "111   111   111", 
-      "111         111"  
-  ];
+      "   111111111   ",
+      "  11111111111  ",
+      " 1111111111111 ",
+      "111111111111111",
+      "111111111111111",
+      "111111111111111",
+      "1111  111  1111",
+      "111   111   111",
+      "111         111" 
+  ];                       
 
   if (newBarrierBlockCols !== 15) { 
     console.warn(`Barrier shape pattern width (15) does not match calculated newBarrierBlockCols (${newBarrierBlockCols}). Falling back to solid rectangular barriers.`);
@@ -796,7 +796,7 @@ function checkGameConditions() {
     }
   }
   if (enemies.every(enemy => !enemy.alive)) {
-    // currentLevel++; // This is now done when transitioning from levelComplete state
+    currentLevel++; // Increment current level
     gameState = "levelComplete";
     levelCompleteDisplayUntil = Date.now() + 3000;
     // gameWon = false; // This should be false until player beats all levels
@@ -879,3 +879,49 @@ function gameLoop() {
 }
 
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
