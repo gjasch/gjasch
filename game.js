@@ -4,7 +4,8 @@ const context = canvas.getContext('2d');
 // Player properties
 const player = {
   width: 50,
-  height: 50,
+  height: 20, // Base height
+  barrelHeight: 10, // Barrel height, can be player.height / 2 or fixed
   speed: 5,
   color: 'green',
   isMovingLeftKeyboard: false,
@@ -14,13 +15,13 @@ const player = {
   isMovingLeftGamepad: false,
   isMovingRightGamepad: false,
   x: 0,
-  y: 0
+  y: 0 // Represents the BOTTOM-MOST part of the cannon graphic
 };
 
 // Enemy Configuration
 const enemyConfig = {
-  width: 40,
-  height: 20,
+  width: 40, 
+  height: 30, 
   color: 'red',
   speed: 2,
   rows: 3,
@@ -41,11 +42,29 @@ const bulletConfig = {
   color: 'yellow',
   speed: 7
 };
-
 let bullets = [];
 
+// Enemy Bullet Configuration
+const enemyBulletConfig = { 
+  width: 4, 
+  height: 10, 
+  color: "pink", // Differentiated from player bullets
+  speed: 4 
+};
+let enemyBullets = [];
+
+
+// Barrier Constants & Array
+const BARRIER_COUNT = 4;
+const BARRIER_COLOR = player.color; 
+const BARRIER_BLOCK_SIZE = 10;
+const BARRIER_BLOCK_ROWS = 3; 
+const BARRIER_BLOCK_COLS = 4; 
+let barriers = [];
+
+
 // Game State
-let gameState = "title"; // "title", "playing", "settings", "gameOver"
+let gameState = "title"; 
 let gameWon = false;
 let onScreenControlsEnabled = false;
 
@@ -54,7 +73,7 @@ let startButton = {};
 let settingsButton = {};
 let onScreenControlsToggleButton = {};
 let backButton = {};
-let gameOverToTitleButton = {}; // Added for game over screen
+let gameOverToTitleButton = {}; 
 
 const buttonHeight = 50;
 const buttonPadding = 10;
@@ -121,11 +140,42 @@ function initializeEnemies() {
   }
 }
 
+function initializeBarriers() {
+  barriers = [];
+  const barrierFullWidth = BARRIER_BLOCK_COLS * BARRIER_BLOCK_SIZE;
+  const sectionWidth = canvas.width / (BARRIER_COUNT + 1); 
+
+  const playerCannonTopY = player.y - player.height - player.barrelHeight;
+  const currentBarrierY = playerCannonTopY - (BARRIER_BLOCK_ROWS * BARRIER_BLOCK_SIZE) - 30; 
+
+  for (let i = 0; i < BARRIER_COUNT; i++) {
+    // Calculate x position to center the barrier within its allocated section of the canvas
+    const barrierX = (i + 1) * sectionWidth - (barrierFullWidth / 2);
+    
+    let barrier = { x: barrierX, y: currentBarrierY, blocks: [] };
+    for (let row = 0; row < BARRIER_BLOCK_ROWS; row++) {
+      for (let col = 0; col < BARRIER_BLOCK_COLS; col++) {
+        let blockX = barrier.x + col * BARRIER_BLOCK_SIZE;
+        let blockY = barrier.y + row * BARRIER_BLOCK_SIZE;
+        barrier.blocks.push({ 
+          x: blockX, 
+          y: blockY, 
+          width: BARRIER_BLOCK_SIZE, 
+          height: BARRIER_BLOCK_SIZE, 
+          alive: true 
+        });
+      }
+    }
+    barriers.push(barrier);
+  }
+}
+
+
 function playerShoot() {
-  // Calls to this function are already guarded by gameState === "playing"
+  const barrelTipY = player.y - player.height - player.barrelHeight;
   bullets.push({
     x: player.x + player.width / 2 - bulletConfig.width / 2,
-    y: player.y,
+    y: barrelTipY, 
     width: bulletConfig.width,
     height: bulletConfig.height,
     color: bulletConfig.color,
@@ -133,17 +183,38 @@ function playerShoot() {
   });
 }
 
+function enemyShoot() {
+  if (Math.random() < 0.01) { // Adjust probability for desired firing rate
+    let aliveEnemies = enemies.filter(e => e.alive);
+    if (aliveEnemies.length > 0) {
+      let shooter = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+      enemyBullets.push({
+        x: shooter.x + shooter.width / 2 - enemyBulletConfig.width / 2,
+        y: shooter.y + shooter.height, // Bottom of the alien
+        width: enemyBulletConfig.width,
+        height: enemyBulletConfig.height,
+        color: enemyBulletConfig.color,
+        speed: enemyBulletConfig.speed
+      });
+    }
+  }
+}
+
+
 function startGame() {
   initializeEnemies();
+  player.y = canvas.height - 10 - (onScreenControlsEnabled ? osButtonHeight + osPadding : 0);
+  initializeBarriers(); 
+  enemyBullets = []; // Clear enemy bullets at game start
+
   player.x = (canvas.width - player.width) / 2;
-  player.y = canvas.height - player.height - 10 - (onScreenControlsEnabled ? osButtonHeight + osPadding : 0);
   player.isMovingLeftKeyboard = false;
   player.isMovingRightKeyboard = false;
   player.isMovingLeftTouch = false;
   player.isMovingRightTouch = false;
   player.isMovingLeftGamepad = false;
   player.isMovingRightGamepad = false;
-  bullets = [];
+  bullets = []; // Clear player bullets
   gameWon = false;
   gameState = "playing";
 }
@@ -261,14 +332,6 @@ function handleGamepadInput() {
 
 // Event Listeners
 document.addEventListener('keydown', function(event) {
-  // Removed game over 'Enter' key listener
-  // if (gameState === "gameOver") {
-  //   if (event.key === 'Enter') { // or event.code === 'Enter'
-  //     gameState = "title";
-  //   }
-  //   return; 
-  // }
-
   if (gameState === "playing") {
     if (event.key === 'ArrowLeft') {
       player.isMovingLeftKeyboard = true;
@@ -298,9 +361,7 @@ function getMousePos(canvasEl, event) {
 }
 
 function isInside(pos, rect) {
-  // Ensure rect is defined and has properties before checking
   if (!rect || typeof rect.x === 'undefined') {
-    // console.warn("isInside called with undefined or incomplete rect:", rect);
     return false;
   }
   return pos.x > rect.x && pos.x < rect.x + rect.width && pos.y < rect.y + rect.height && pos.y > rect.y;
@@ -322,7 +383,6 @@ canvas.addEventListener('click', function(event) {
       gameState = "title";
     }
   } else if (gameState === "gameOver") {
-    // gameOverToTitleButton properties are set in gameLoop when drawing this screen
     if (isInside(mousePos, gameOverToTitleButton)) {
       gameState = "title";
     }
@@ -396,14 +456,17 @@ function updatePlayer() {
   if (player.isMovingLeftKeyboard || player.isMovingLeftTouch || player.isMovingLeftGamepad) player.x -= player.speed;
   if (player.isMovingRightKeyboard || player.isMovingRightTouch || player.isMovingRightGamepad) player.x += player.speed;
 
-  // Boundary detection
   if (player.x < 0) player.x = 0;
   if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
 }
 
 function drawPlayer() {
   context.fillStyle = player.color;
-  context.fillRect(player.x, player.y, player.width, player.height);
+  context.fillRect(player.x, player.y - player.height, player.width, player.height);
+  const barrelWidth = player.width / 3;
+  const barrelX = player.x + (player.width / 2) - (barrelWidth / 2);
+  const barrelY = player.y - player.height - player.barrelHeight;
+  context.fillRect(barrelX, barrelY, barrelWidth, player.barrelHeight);
 }
 
 function updateAndDrawBullets() {
@@ -411,28 +474,125 @@ function updateAndDrawBullets() {
     const bullet = bullets[i];
     bullet.y -= bullet.speed;
 
-    // Draw bullet
     context.fillStyle = bullet.color;
     context.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
 
-    // Check for off-screen bullets
+    let bulletRemovedThisFrame = false;
+
     if (bullet.y + bullet.height < 0) {
       bullets.splice(i, 1);
-      continue;
+      bulletRemovedThisFrame = true; 
+      continue; 
     }
 
-    // Bullet-enemy collision
     for (let j = enemies.length - 1; j >= 0; j--) {
       const enemy = enemies[j];
       if (enemy.alive &&
-          bullet.x < enemy.x + enemy.width && bullet.x + bullet.width > enemy.x &&
-          bullet.y < enemy.y + enemy.height && bullet.y + bullet.height > enemy.y) {
+          bullet.x < enemy.x + enemy.width &&
+          bullet.x + bullet.width > enemy.x &&
+          bullet.y < enemy.y + enemy.height &&
+          bullet.y + bullet.height > enemy.y) {
         enemy.alive = false;
         bullets.splice(i, 1);
+        bulletRemovedThisFrame = true;
+        break; 
+      }
+    }
+
+    if (bulletRemovedThisFrame) {
+      continue; 
+    }
+
+    for (let b = 0; b < barriers.length; b++) {
+      const barrier = barriers[b];
+      for (let k = 0; k < barrier.blocks.length; k++) {
+        const block = barrier.blocks[k];
+        if (block.alive) {
+          if (bullet.x < block.x + block.width &&
+              bullet.x + bullet.width > block.x &&
+              bullet.y < block.y + block.height &&
+              bullet.y + bullet.height > block.y) {
+            block.alive = false;
+            bullets.splice(i, 1);
+            bulletRemovedThisFrame = true; 
+            break; 
+          }
+        }
+      }
+      if (bulletRemovedThisFrame) {
         break; 
       }
     }
   }
+}
+
+function updateAndDrawEnemyBullets(ctx) {
+  ctx.fillStyle = enemyBulletConfig.color;
+  for (let i = enemyBullets.length - 1; i >= 0; i--) {
+    let bullet = enemyBullets[i];
+    bullet.y += bullet.speed;
+    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    
+    let bulletRemoved = false;
+
+    // Collision with player
+    // Player visual top: player.y - player.height - player.barrelHeight
+    // Player visual bottom: player.y (as player.y is bottom line of base)
+    const playerVisualTopY = player.y - player.height - player.barrelHeight;
+    const playerVisualBottomY = player.y;
+
+    if (bullet.x < player.x + player.width &&
+        bullet.x + bullet.width > player.x &&
+        bullet.y < playerVisualBottomY && // Bullet's top edge vs player's bottom
+        bullet.y + bullet.height > playerVisualTopY) { // Bullet's bottom edge vs player's top
+      
+      gameState = "gameOver"; 
+      gameWon = false;
+      enemyBullets.splice(i, 1); 
+      bulletRemoved = true;
+      // console.log("Player hit by enemy bullet!"); // For debugging
+      continue; // Next bullet, player is hit
+    }
+
+    // Collision with barriers (if not already removed by hitting player)
+    if (!bulletRemoved) {
+      for (let b = 0; b < barriers.length; b++) {
+        const barrier = barriers[b];
+        for (let k = 0; k < barrier.blocks.length; k++) {
+          let block = barrier.blocks[k];
+          if (block.alive &&
+              bullet.x < block.x + block.width &&
+              bullet.x + bullet.width > block.x &&
+              bullet.y < block.y + block.height &&
+              bullet.y + bullet.height > block.y) {
+            block.alive = false;
+            enemyBullets.splice(i, 1); 
+            bulletRemoved = true;
+            break; // Exit blocks loop
+          }
+        }
+        if (bulletRemoved) break; // Exit barriers loop
+      }
+    }
+    
+    // Remove if off-screen (if not already removed)
+    if (!bulletRemoved && bullet.y > canvas.height) { // Check if bullet is below canvas
+      enemyBullets.splice(i, 1);
+    }
+  }
+}
+
+
+function drawAlien(enemy, ctx) {
+  ctx.fillStyle = enemy.color;
+  const blockW = enemy.width / 8;  
+  const blockH = enemy.height / 5; 
+  ctx.fillRect(enemy.x + blockW * 3, enemy.y, blockW * 2, blockH);
+  ctx.fillRect(enemy.x + blockW * 2, enemy.y + blockH, blockW * 4, blockH);
+  ctx.fillRect(enemy.x + blockW * 1, enemy.y + blockH * 2, blockW * 6, blockH);
+  ctx.fillRect(enemy.x, enemy.y + blockH * 3, enemy.width, blockH);
+  ctx.fillRect(enemy.x + blockW * 1, enemy.y + blockH * 4, blockW * 2, blockH); 
+  ctx.fillRect(enemy.x + blockW * 5, enemy.y + blockH * 4, blockW * 2, blockH); 
 }
 
 function updateAndDrawEnemies() {
@@ -445,46 +605,50 @@ function updateAndDrawEnemies() {
       }
     }
   });
-
   if (hitBoundary) {
     enemyDirection *= -1;
-    enemyMoveDown = enemyConfig.height / 2;
+    enemyMoveDown = enemyConfig.height / 2; 
   }
-
   if (enemyMoveDown > 0) {
-    const moveStep = 1; // Can be adjusted for faster/slower downward step
+    const moveStep = 1; 
     enemies.forEach(enemy => { if (enemy.alive) enemy.y += moveStep; });
     enemyMoveDown -= moveStep;
   }
-
-  // Draw enemies
   enemies.forEach(enemy => {
     if (enemy.alive) {
-      context.fillStyle = enemy.color;
-      context.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+      drawAlien(enemy, context); 
     }
   });
 }
 
+function drawBarriers(ctx) {
+  ctx.fillStyle = BARRIER_COLOR;
+  barriers.forEach(barrier => {
+    barrier.blocks.forEach(block => {
+      if (block.alive) {
+        ctx.fillRect(block.x, block.y, block.width, block.height);
+      }
+    });
+  });
+}
+
 function checkGameConditions() {
-  // Loss Condition Check (Enemies reach player)
+  if (gameState !== "playing") return; // Only check if currently playing
+
   for (const enemy of enemies) {
     if (enemy.alive && enemy.y + enemy.height >= player.y) { 
-      gameWon = false;
       gameState = "gameOver";
-      return; // Game over, no need to check win condition
+      gameWon = false;
+      return; 
     }
   }
-  
-  // Win Condition Check (All enemies dead)
-  // Only check if game is not already over from loss condition
   if (enemies.every(enemy => !enemy.alive)) {
-    gameWon = true;
     gameState = "gameOver";
+    gameWon = true;
   }
 }
-// --- End of helper functions for gameLoop ---
 
+// --- Game Loop ---
 function gameLoop() {
   if (gameState === "title") {
     drawTitleScreen();
@@ -492,21 +656,25 @@ function gameLoop() {
     drawSettingsScreen();
   } else if (gameState === "playing") {
     handleGamepadInput(); 
+    enemyShoot(); // Allow enemies to shoot
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     updatePlayer();
     drawPlayer();
+    drawBarriers(context); 
     
-    updateAndDrawBullets();
+    updateAndDrawBullets(); // Player bullets
+    updateAndDrawEnemyBullets(context); // Enemy bullets
     updateAndDrawEnemies();
     
-    checkGameConditions(); 
+    checkGameConditions(); // This might change gameState to "gameOver"
     
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
     }
 
   } else if (gameState === "gameOver") {
+    // Ensure game logic does not run if game is over
     context.fillStyle = 'rgba(0, 0, 0, 0.75)';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.font = '48px Arial';
@@ -516,18 +684,15 @@ function gameLoop() {
     const message = gameWon ? 'You Win!' : 'Game Over!';
     context.fillText(message, canvas.width / 2, canvas.height / 2);
     
-    // Define and draw the "Return to Menu" button
-    const buttonWidth = 250; // Adjusted width for better text fit
+    const buttonWidth = 250; 
     gameOverToTitleButton = {
         x: canvas.width / 2 - buttonWidth / 2,
-        y: canvas.height / 2 + 60, // Positioned below the game over message
+        y: canvas.height / 2 + 60, 
         width: buttonWidth,
-        height: buttonHeight, // Using global buttonHeight
+        height: buttonHeight, 
         label: "Return to Menu"
     };
     drawButton(gameOverToTitleButton);
-
-    // Removed: context.fillText('Press Enter to Return to Title Screen', canvas.width / 2, canvas.height / 2 + 60);
   }
   
   requestAnimationFrame(gameLoop);
