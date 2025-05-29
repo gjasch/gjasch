@@ -7,30 +7,32 @@ const player = {
   height: 50,
   speed: 5,
   color: 'green',
-  isMovingLeft: false,
-  isMovingRight: false
+  isMovingLeftKeyboard: false,
+  isMovingRightKeyboard: false,
+  isMovingLeftTouch: false,
+  isMovingRightTouch: false,
+  isMovingLeftGamepad: false,
+  isMovingRightGamepad: false,
+  x: 0,
+  y: 0
 };
-
-// Initialize player position at bottom-center
-player.x = (canvas.width - player.width) / 2;
-player.y = canvas.height - player.height - 10; // 10px offset from bottom
 
 // Enemy Configuration
 const enemyConfig = {
   width: 40,
   height: 20,
   color: 'red',
-  speed: 2, // Speed of horizontal movement
+  speed: 2,
   rows: 3,
   cols: 8,
-  padding: 10, // Padding between enemies
-  marginTop: 30, // Margin from the top of the canvas
-  marginLeft: 60 // Margin from the left of the canvas
+  padding: 10,
+  marginTop: 30,
+  marginLeft: 60
 };
 
 let enemies = [];
-let enemyDirection = 1; // 1 for right, -1 for left
-let enemyMoveDown = 0; // Pixels to move down
+let enemyDirection = 1;
+let enemyMoveDown = 0;
 
 // Bullet Configuration
 const bulletConfig = {
@@ -43,11 +45,67 @@ const bulletConfig = {
 let bullets = [];
 
 // Game State
-let gameOver = false;
+let gameState = "title"; // "title", "playing", "settings", "gameOver"
 let gameWon = false;
+let onScreenControlsEnabled = false;
+
+// Clickable areas
+let startButton = {};
+let settingsButton = {};
+let onScreenControlsToggleButton = {};
+let backButton = {};
+
+const buttonHeight = 50;
+const buttonPadding = 10;
+
+// On-screen control buttons
+const osButtonHeight = 60;
+const osButtonWidth = 100;
+const osPadding = 10;
+
+let osLeftButton = {
+  x: osPadding,
+  y: canvas.height - osButtonHeight - osPadding,
+  width: osButtonWidth,
+  height: osButtonHeight,
+  label: "<"
+};
+let osRightButton = {
+  x: osPadding + osButtonWidth + osPadding, 
+  y: canvas.height - osButtonHeight - osPadding,
+  width: osButtonWidth,
+  height: osButtonHeight,
+  label: ">"
+};
+let osFireButton = {
+  x: canvas.width - osButtonWidth - osPadding, 
+  y: canvas.height - osButtonHeight - osPadding,
+  width: osButtonWidth,
+  height: osButtonHeight,
+  label: "Fire"
+};
+
+// Gamepad support
+let gamepads = {};
+
+function gamepadConnected(e) {
+  console.log("Gamepad connected:", e.gamepad.id);
+  gamepads[e.gamepad.index] = e.gamepad;
+}
+
+function gamepadDisconnected(e) {
+  console.log("Gamepad disconnected:", e.gamepad.id);
+  delete gamepads[e.gamepad.index];
+}
+
+window.addEventListener("gamepadconnected", gamepadConnected);
+window.addEventListener("gamepaddisconnected", gamepadDisconnected);
+
 
 function initializeEnemies() {
-  enemies = []; // Clear existing enemies if any
+  enemies = [];
+  enemyDirection = 1;
+  enemyMoveDown = 0;
   for (let row = 0; row < enemyConfig.rows; row++) {
     for (let col = 0; col < enemyConfig.cols; col++) {
       enemies.push({
@@ -62,71 +120,281 @@ function initializeEnemies() {
   }
 }
 
-// Event Listeners for keyboard input
-document.addEventListener('keydown', function(event) {
-  if (gameOver) return; // Don't allow input if game is over
+function playerShoot() {
+  // Calls to this function are already guarded by gameState === "playing"
+  bullets.push({
+    x: player.x + player.width / 2 - bulletConfig.width / 2,
+    y: player.y,
+    width: bulletConfig.width,
+    height: bulletConfig.height,
+    color: bulletConfig.color,
+    speed: bulletConfig.speed
+  });
+}
 
-  if (event.key === 'ArrowLeft') {
-    player.isMovingLeft = true;
-  } else if (event.key === 'ArrowRight') {
-    player.isMovingRight = true;
-  } else if (event.code === 'Space') {
-    bullets.push({
-      x: player.x + player.width / 2 - bulletConfig.width / 2,
-      y: player.y,
-      width: bulletConfig.width,
-      height: bulletConfig.height,
-      color: bulletConfig.color,
-      speed: bulletConfig.speed
-    });
+function startGame() {
+  initializeEnemies();
+  player.x = (canvas.width - player.width) / 2;
+  player.y = canvas.height - player.height - 10 - (onScreenControlsEnabled ? osButtonHeight + osPadding : 0);
+  player.isMovingLeftKeyboard = false;
+  player.isMovingRightKeyboard = false;
+  player.isMovingLeftTouch = false;
+  player.isMovingRightTouch = false;
+  player.isMovingLeftGamepad = false;
+  player.isMovingRightGamepad = false;
+  bullets = [];
+  gameWon = false;
+  gameState = "playing";
+}
+
+function drawButton(button) {
+  context.fillStyle = 'gray';
+  context.fillRect(button.x, button.y, button.width, button.height);
+  context.fillStyle = 'white';
+  context.font = '24px Arial';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(button.label, button.x + button.width / 2, button.y + button.height / 2);
+}
+
+function drawTitleScreen() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = 'black';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  context.font = '72px Arial';
+  context.fillStyle = 'white';
+  context.textAlign = 'center';
+  context.textBaseline = 'alphabetic';
+  context.fillText('Space Invaders', canvas.width / 2, canvas.height / 3);
+
+  const startButtonWidth = 300;
+  startButton = {
+    x: (canvas.width - startButtonWidth) / 2,
+    y: canvas.height / 2 - buttonHeight - buttonPadding / 2,
+    width: startButtonWidth,
+    height: buttonHeight,
+    label: "Start New Game"
+  };
+  drawButton(startButton);
+
+  const settingsButtonWidth = 200;
+  settingsButton = {
+    x: (canvas.width - settingsButtonWidth) / 2,
+    y: canvas.height / 2 + buttonPadding / 2,
+    width: settingsButtonWidth,
+    height: buttonHeight,
+    label: "Settings"
+  };
+  drawButton(settingsButton);
+}
+
+function drawSettingsScreen() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = 'black';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  context.font = '48px Arial';
+  context.fillStyle = 'white';
+  context.textAlign = 'center';
+  context.textBaseline = 'alphabetic';
+  context.fillText('Settings', canvas.width / 2, canvas.height / 4);
+
+  const toggleButtonWidth = 400;
+  onScreenControlsToggleButton = {
+    x: (canvas.width - toggleButtonWidth) / 2,
+    y: canvas.height / 2 - buttonHeight - buttonPadding / 2,
+    width: toggleButtonWidth,
+    height: buttonHeight,
+    label: `On-Screen Controls: ${onScreenControlsEnabled ? "Enabled" : "Disabled"}`
+  };
+  drawButton(onScreenControlsToggleButton);
+  
+  const backButtonWidth = 150;
+  backButton = {
+    x: (canvas.width - backButtonWidth) / 2,
+    y: canvas.height / 2 + buttonPadding / 2 + 20,
+    width: backButtonWidth,
+    height: buttonHeight,
+    label: "Back"
+  };
+  drawButton(backButton);
+}
+
+function drawOnScreenControls() {
+  osLeftButton.y = canvas.height - osButtonHeight - osPadding;
+  osRightButton.y = canvas.height - osButtonHeight - osPadding;
+  osFireButton.y = canvas.height - osButtonHeight - osPadding;
+  osFireButton.x = canvas.width - osButtonWidth - osPadding;
+
+  drawButton(osLeftButton);
+  drawButton(osRightButton);
+  drawButton(osFireButton);
+}
+
+function handleGamepadInput() {
+  let activeGamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+  
+  player.isMovingLeftGamepad = false;
+  player.isMovingRightGamepad = false;
+
+  for (let i = 0; i < activeGamepads.length; i++) {
+    const gp = activeGamepads[i];
+    if (gp) {
+      const deadZone = 0.2;
+      const horizontalAxis = gp.axes[0];
+
+      if (horizontalAxis < -deadZone) {
+        player.isMovingLeftGamepad = true;
+      } else if (horizontalAxis > deadZone) {
+        player.isMovingRightGamepad = true;
+      }
+
+      const fireButtonIndex = 0; 
+      if (gp.buttons[fireButtonIndex] && gp.buttons[fireButtonIndex].pressed) {
+        playerShoot(); 
+      }
+    }
+  }
+}
+
+// Event Listeners
+document.addEventListener('keydown', function(event) {
+  if (gameState === "gameOver") {
+    if (event.key === 'Enter') {
+      gameState = "title";
+    }
+    return;
+  }
+
+  if (gameState === "playing") {
+    if (event.key === 'ArrowLeft') {
+      player.isMovingLeftKeyboard = true;
+    } else if (event.key === 'ArrowRight') {
+      player.isMovingRightKeyboard = true;
+    } else if (event.code === 'Space') {
+      playerShoot();
+    }
   }
 });
 
 document.addEventListener('keyup', function(event) {
+  if (gameState !== "playing") return;
   if (event.key === 'ArrowLeft') {
-    player.isMovingLeft = false;
+    player.isMovingLeftKeyboard = false;
   } else if (event.key === 'ArrowRight') {
-    player.isMovingRight = false;
+    player.isMovingRightKeyboard = false;
   }
 });
 
-function gameLoop() {
-  if (gameOver) {
-    context.fillStyle = 'rgba(0, 0, 0, 0.75)'; // Semi-transparent black background
-    context.fillRect(0, 0, canvas.width, canvas.height); // Cover the whole canvas
+function getMousePos(canvasEl, event) { 
+  const rect = canvasEl.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  };
+}
 
-    context.font = '48px Arial';
-    context.fillStyle = gameWon ? 'gold' : 'red';
-    context.textAlign = 'center';
-    const message = gameWon ? 'You Win!' : 'Game Over!';
-    context.fillText(message, canvas.width / 2, canvas.height / 2);
-    return; // Stop further game processing
-  }
+function isInside(pos, rect) {
+  return pos.x > rect.x && pos.x < rect.x + rect.width && pos.y < rect.y + rect.height && pos.y > rect.y;
+}
 
-  // Clear the canvas
-  context.clearRect(0, 0, canvas.width, canvas.height);
+canvas.addEventListener('click', function(event) {
+  const mousePos = getMousePos(canvas, event);
 
-  // Update player position
-  if (player.isMovingLeft) {
-    player.x -= player.speed;
+  if (gameState === "title") {
+    if (isInside(mousePos, startButton)) {
+      startGame();
+    } else if (isInside(mousePos, settingsButton)) {
+      gameState = "settings";
+    }
+  } else if (gameState === "settings") {
+    if (isInside(mousePos, onScreenControlsToggleButton)) {
+      onScreenControlsEnabled = !onScreenControlsEnabled;
+    } else if (isInside(mousePos, backButton)) {
+      gameState = "title";
+    }
   }
-  if (player.isMovingRight) {
-    player.x += player.speed;
-  }
+});
 
-  // Boundary detection for player
-  if (player.x < 0) {
-    player.x = 0;
+canvas.addEventListener('touchstart', function(e) {
+  if (gameState === "playing" && onScreenControlsEnabled) {
+    let actionTaken = false;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const touchPos = getMousePos(canvas, touch);
+      if (isInside(touchPos, osLeftButton)) {
+        player.isMovingLeftTouch = true;
+        actionTaken = true;
+      }
+      if (isInside(touchPos, osRightButton)) {
+        player.isMovingRightTouch = true;
+        actionTaken = true;
+      }
+      if (isInside(touchPos, osFireButton)) {
+        playerShoot();
+        actionTaken = true;
+      }
+    }
+    if (actionTaken) {
+      e.preventDefault();
+    }
   }
-  if (player.x + player.width > canvas.width) {
-    player.x = canvas.width - player.width;
-  }
+}, { passive: false }); 
 
-  // Draw the player
+canvas.addEventListener('touchend', function(e) {
+  if (gameState === "playing" && onScreenControlsEnabled) {
+    let actionTaken = false;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const touchPos = getMousePos(canvas, touch); 
+      
+      if (player.isMovingLeftTouch && !isInside(touchPos, osRightButton)) {
+        let leftStillPressed = false;
+        for (let j = 0; j < e.touches.length; j++) { 
+            if (isInside(getMousePos(canvas, e.touches[j]), osLeftButton)) {
+                leftStillPressed = true;
+                break;
+            }
+        }
+        if (!leftStillPressed) player.isMovingLeftTouch = false;
+        actionTaken = true;
+      }
+      
+      if (player.isMovingRightTouch && !isInside(touchPos, osLeftButton)) {
+        let rightStillPressed = false;
+        for (let j = 0; j < e.touches.length; j++) {
+            if (isInside(getMousePos(canvas, e.touches[j]), osRightButton)) {
+                rightStillPressed = true;
+                break;
+            }
+        }
+        if (!rightStillPressed) player.isMovingRightTouch = false;
+        actionTaken = true;
+      }
+    }
+    if (actionTaken) {
+      e.preventDefault();
+    }
+  }
+}, { passive: false });
+
+// --- Helper functions for gameLoop "playing" state ---
+function updatePlayer() {
+  if (player.isMovingLeftKeyboard || player.isMovingLeftTouch || player.isMovingLeftGamepad) player.x -= player.speed;
+  if (player.isMovingRightKeyboard || player.isMovingRightTouch || player.isMovingRightGamepad) player.x += player.speed;
+
+  // Boundary detection
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+}
+
+function drawPlayer() {
   context.fillStyle = player.color;
   context.fillRect(player.x, player.y, player.width, player.height);
+}
 
-  // Bullet logic
+function updateAndDrawBullets() {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const bullet = bullets[i];
     bullet.y -= bullet.speed;
@@ -145,25 +413,21 @@ function gameLoop() {
     for (let j = enemies.length - 1; j >= 0; j--) {
       const enemy = enemies[j];
       if (enemy.alive &&
-          bullet.x < enemy.x + enemy.width &&
-          bullet.x + bullet.width > enemy.x &&
-          bullet.y < enemy.y + enemy.height &&
-          bullet.y + bullet.height > enemy.y) {
+          bullet.x < enemy.x + enemy.width && bullet.x + bullet.width > enemy.x &&
+          bullet.y < enemy.y + enemy.height && bullet.y + bullet.height > enemy.y) {
         enemy.alive = false;
         bullets.splice(i, 1);
         break; 
       }
     }
   }
+}
 
-  // Enemy logic
+function updateAndDrawEnemies() {
   let hitBoundary = false;
   enemies.forEach(enemy => {
     if (enemy.alive) {
-      // Update horizontal position
       enemy.x += enemyConfig.speed * enemyDirection;
-
-      // Check for boundary hits
       if (enemy.x + enemy.width > canvas.width || enemy.x < 0) {
         hitBoundary = true;
       }
@@ -176,64 +440,75 @@ function gameLoop() {
   }
 
   if (enemyMoveDown > 0) {
-    const moveStep = 1;
-    enemies.forEach(enemy => {
-      if (enemy.alive) {
-        enemy.y += moveStep;
-      }
-    });
+    const moveStep = 1; // Can be adjusted for faster/slower downward step
+    enemies.forEach(enemy => { if (enemy.alive) enemy.y += moveStep; });
     enemyMoveDown -= moveStep;
   }
 
-  // Draw enemies (only alive ones)
+  // Draw enemies
   enemies.forEach(enemy => {
     if (enemy.alive) {
       context.fillStyle = enemy.color;
       context.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
     }
   });
+}
 
+function checkGameConditions() {
   // Loss Condition Check (Enemies reach player)
   for (const enemy of enemies) {
-    if (enemy.alive && enemy.y + enemy.height >= player.y) {
-      gameOver = true;
+    if (enemy.alive && enemy.y + enemy.height >= player.y) { 
       gameWon = false;
-      // No need to call gameLoop again here, the check at the top will handle it
-      // and display the message. We also don't need to return here,
-      // as the next iteration of gameLoop will catch the gameOver state.
-      // However, returning early can prevent unnecessary processing if desired.
-      // For simplicity, we'll let the top check handle it.
-      break; // Exit loop as game is over
-    }
-  }
-  if (gameOver && !gameWon) { // If loss condition met, request another frame to show message
-      requestAnimationFrame(gameLoop);
-      return;
-  }
-
-
-  // Win Condition Check (All enemies dead)
-  // Only check if the game is not already over (e.g., by loss condition)
-  if (!gameOver) {
-    let allEnemiesDead = true;
-    for (const enemy of enemies) {
-      if (enemy.alive) {
-        allEnemiesDead = false;
-        break;
-      }
-    }
-
-    if (allEnemiesDead) {
-      gameOver = true;
-      gameWon = true;
-      // No need to call gameLoop again here, the check at the top will handle it.
+      gameState = "gameOver";
+      return; // Game over, no need to check win condition
     }
   }
   
-  // Call itself again using requestAnimationFrame
+  // Win Condition Check (All enemies dead)
+  // Only check if game is not already over from loss condition
+  if (enemies.every(enemy => !enemy.alive)) {
+    gameWon = true;
+    gameState = "gameOver";
+  }
+}
+// --- End of helper functions for gameLoop ---
+
+function gameLoop() {
+  if (gameState === "title") {
+    drawTitleScreen();
+  } else if (gameState === "settings") {
+    drawSettingsScreen();
+  } else if (gameState === "playing") {
+    handleGamepadInput(); 
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    updatePlayer();
+    drawPlayer();
+    
+    updateAndDrawBullets();
+    updateAndDrawEnemies();
+    
+    checkGameConditions(); // This will set gameState to "gameOver" if conditions are met
+    
+    if (onScreenControlsEnabled) {
+      drawOnScreenControls();
+    }
+
+  } else if (gameState === "gameOver") {
+    context.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.font = '48px Arial';
+    context.fillStyle = gameWon ? 'gold' : 'red';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    const message = gameWon ? 'You Win!' : 'Game Over!';
+    context.fillText(message, canvas.width / 2, canvas.height / 2);
+    context.font = '24px Arial';
+    context.fillStyle = 'white';
+    context.fillText('Press Enter to Return to Title Screen', canvas.width / 2, canvas.height / 2 + 60);
+  }
+  
   requestAnimationFrame(gameLoop);
 }
 
-// Initialize and start
-initializeEnemies();
 gameLoop();
