@@ -879,5 +879,3 @@ function gameLoop() {
 }
 
 gameLoop();
-
-[end of game.js]
