@@ -121,6 +121,8 @@ let barriers = [];
 let gameState = "title"; 
 let gameWon = false; 
 let onScreenControlsEnabled = false;
+let freezeFrameUntil = 0;
+let nextStateAfterFreeze = "";
 
 // Clickable areas
 let startButton = {};
@@ -820,8 +822,11 @@ function updateAndDrawEnemyBullets(ctx) {
         bullet.y < playerVisualBottomY && 
         bullet.y + bullet.height > playerVisualTopY) { 
       
-      gameState = "gameOver"; 
-      gameWon = false;
+      gameState = "freezeFrame";
+      freezeFrameUntil = Date.now() + 1000; // 1000ms = 1 second
+      nextStateAfterFreeze = "gameOver";
+      gameWon = false; // This outcome is determined now
+      
       enemyBullets.splice(i, 1); 
       bulletRemoved = true;
       continue; 
@@ -915,14 +920,18 @@ function checkGameConditions() {
 
   for (const enemy of enemies) {
     if (enemy.alive && enemy.y + enemy.height >= player.y) { 
-      gameState = "gameOver";
-      gameWon = false; 
-      return; 
+      gameState = "freezeFrame";
+      freezeFrameUntil = Date.now() + 1000;
+      nextStateAfterFreeze = "gameOver";
+      gameWon = false; // Outcome determined
+      return; // Still exit the function
     }
   }
   if (enemies.every(enemy => !enemy.alive)) {
-    currentLevel++; // Increment current level
-    gameState = "levelComplete";
+    gameState = "freezeFrame";
+    freezeFrameUntil = Date.now() + 1000; // 1-second freeze
+    nextStateAfterFreeze = "levelComplete";
+    // currentLevel will be incremented after the freeze, before showing the level complete message.
     // gameWon = false; // This should be false until player beats all levels
   }
 }
@@ -939,6 +948,49 @@ function gameLoop() {
     drawStars(context);
     drawLevelCompleteMessage(context); // Draws its own overlay over stars
     // The logic to start the next level will be triggered by a button click later.
+  } else if (gameState === "freezeFrame") {
+    // 1. Drawing Logic (most things are static)
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    drawStars(context);
+
+    drawPlayer(); // Player is static, no updatePlayer() call
+    drawBarriers(context); // Barriers are static
+
+    // Draw static player bullets
+    context.fillStyle = bulletConfig.color;
+    for (let i = 0; i < bullets.length; i++) { // Use standard for loop for safety
+        const bullet = bullets[i];
+        context.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    }
+
+    // Draw static enemy bullets
+    context.fillStyle = enemyBulletConfig.color;
+    for (let i = 0; i < enemyBullets.length; i++) { // Use standard for loop
+        const bullet = enemyBullets[i];
+        context.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    }
+
+    // Draw static enemies
+    for (let i = 0; i < enemies.length; i++) { // Use standard for loop
+        const enemy = enemies[i];
+        if (enemy.alive) {
+            drawAlien(enemy, context); // No enemy position updates
+        }
+    }
+
+    updateAndDrawParticles(context); // Particles continue to update and draw
+
+    drawScore(context); // Score display is static
+
+    // 2. Check Timer and Transition Logic
+    if (Date.now() > freezeFrameUntil) {
+        if (nextStateAfterFreeze === "levelComplete") {
+            currentLevel++; // Increment level just before showing "Level Complete" screen
+        }
+        gameState = nextStateAfterFreeze;
+        nextStateAfterFreeze = ""; // Reset for future use (good practice)
+    }
   } else if (gameState === "playing") {
     handleGamepadInput(); 
     enemyShoot(); 
@@ -1007,3 +1059,49 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
