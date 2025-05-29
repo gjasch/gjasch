@@ -8,6 +8,10 @@ let highScore = 0;
 // Level variables
 let currentLevel = 1;
 
+// Starfield
+let stars = [];
+const NUM_STARS = 100; // Adjust for desired density
+
 // Player properties
 const player = {
   width: 50,
@@ -58,7 +62,7 @@ const alienShapePatterns = {
             "11111111",
             "1  11  1" 
         ],
-        color: "purple" 
+        color: "mediumorchid" 
     },
     type3: { 
         pattern: [
@@ -326,7 +330,7 @@ function startGame(isContinuing = false) {
 }
 
 function drawButton(button) {
-  context.fillStyle = 'gray';
+  context.fillStyle = '#777777'; // Was 'gray'
   context.fillRect(button.x, button.y, button.width, button.height);
   context.fillStyle = 'white';
   context.font = '24px Arial';
@@ -369,11 +373,29 @@ function drawLevelCompleteMessage(ctx) {
     drawButton(readyButtonLevelComplete); // Use the existing drawButton helper
 }
 
+function initializeStars() {
+    stars = []; // Clear existing stars
+    for (let i = 0; i < NUM_STARS; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 1 // Star size between 1 and 3
+        });
+    }
+}
+
+function drawStars(ctx) {
+    ctx.fillStyle = 'white';
+    for (let i = 0; i < stars.length; i++) {
+        const star = stars[i];
+        ctx.fillRect(star.x, star.y, star.size, star.size);
+    }
+}
 
 function drawTitleScreen() {
-  context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = 'black';
   context.fillRect(0, 0, canvas.width, canvas.height);
+  drawStars(context);
 
   context.font = '72px Arial';
   context.fillStyle = 'white';
@@ -403,9 +425,9 @@ function drawTitleScreen() {
 }
 
 function drawSettingsScreen() {
-  context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = 'black';
   context.fillRect(0, 0, canvas.width, canvas.height);
+  drawStars(context);
 
   context.font = '48px Arial';
   context.fillStyle = 'white';
@@ -834,12 +856,17 @@ function gameLoop() {
   } else if (gameState === "settings") {
     drawSettingsScreen();
   } else if (gameState === "levelComplete") {
-    drawLevelCompleteMessage(context);
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    drawStars(context);
+    drawLevelCompleteMessage(context); // Draws its own overlay over stars
     // The logic to start the next level will be triggered by a button click later.
   } else if (gameState === "playing") {
     handleGamepadInput(); 
     enemyShoot(); 
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    drawStars(context);
 
     updatePlayer();
     drawPlayer();
@@ -857,6 +884,10 @@ function gameLoop() {
     }
 
   } else if (gameState === "gameOver") {
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    drawStars(context);
+    // Now draw the semi-transparent overlay for the game over specific messages
     context.fillStyle = 'rgba(0, 0, 0, 0.75)';
     context.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -895,6 +926,7 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
+initializeStars(); // Call once before game starts
 gameLoop();
 
 [end of game.js]
