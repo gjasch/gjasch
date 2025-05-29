@@ -57,9 +57,8 @@ let enemyBullets = [];
 // Barrier Constants & Array
 const BARRIER_COUNT = 4;
 const BARRIER_COLOR = player.color; 
-const BARRIER_BLOCK_SIZE = 10;
-const BARRIER_BLOCK_ROWS = 3; 
-const BARRIER_BLOCK_COLS = 4; 
+const BARRIER_BLOCK_SIZE = 5; 
+const BARRIER_BLOCK_ROWS = 6; 
 let barriers = [];
 
 
@@ -142,31 +141,79 @@ function initializeEnemies() {
 
 function initializeBarriers() {
   barriers = [];
-  const barrierFullWidth = BARRIER_BLOCK_COLS * BARRIER_BLOCK_SIZE;
-  const sectionWidth = canvas.width / (BARRIER_COUNT + 1); 
+  
+  const targetBarrierWidth = player.width * 1.5;
+  const newBarrierBlockCols = Math.floor(targetBarrierWidth / BARRIER_BLOCK_SIZE);
+  console.log("Calculated newBarrierBlockCols:", newBarrierBlockCols); // Expected: 15
+
+  const singleBarrierActualWidth = newBarrierBlockCols * BARRIER_BLOCK_SIZE;
+
+  const interBarrierGap = 60; 
+  const totalBarriersGroupWidth = (BARRIER_COUNT * singleBarrierActualWidth) + ((BARRIER_COUNT - 1) * interBarrierGap);
+  const groupStartX = (canvas.width - totalBarriersGroupWidth) / 2;
 
   const playerCannonTopY = player.y - player.height - player.barrelHeight;
   const currentBarrierY = playerCannonTopY - (BARRIER_BLOCK_ROWS * BARRIER_BLOCK_SIZE) - 30; 
 
-  for (let i = 0; i < BARRIER_COUNT; i++) {
-    // Calculate x position to center the barrier within its allocated section of the canvas
-    const barrierX = (i + 1) * sectionWidth - (barrierFullWidth / 2);
-    
-    let barrier = { x: barrierX, y: currentBarrierY, blocks: [] };
-    for (let row = 0; row < BARRIER_BLOCK_ROWS; row++) {
-      for (let col = 0; col < BARRIER_BLOCK_COLS; col++) {
-        let blockX = barrier.x + col * BARRIER_BLOCK_SIZE;
-        let blockY = barrier.y + row * BARRIER_BLOCK_SIZE;
-        barrier.blocks.push({ 
-          x: blockX, 
-          y: blockY, 
-          width: BARRIER_BLOCK_SIZE, 
-          height: BARRIER_BLOCK_SIZE, 
-          alive: true 
-        });
+  // Barrier shape pattern. Each string must have 'newBarrierBlockCols' characters.
+  // This pattern is designed for newBarrierBlockCols = 15.
+  // It has BARRIER_BLOCK_ROWS (6) elements.
+  const barrierShapePattern = [ 
+      "   111111111   ", // Row 0
+      "  11111111111  ", // Row 1
+      " 1111111111111 ", // Row 2
+      "111111111111111", // Row 3
+      "1111  111  1111", // Row 4 (with gaps)
+      "111        111"  // Row 5 (larger gaps)
+  ];
+
+  // Check if the pattern width matches the calculated columns.
+  // This is a basic check; more complex adjustments might be needed if they don't match.
+  if (newBarrierBlockCols !== 15) {
+    console.warn(`Barrier shape pattern width (15) does not match calculated newBarrierBlockCols (${newBarrierBlockCols}). Falling back to solid rectangular barriers.`);
+    // Fallback to solid rectangular barriers if pattern doesn't match
+    for (let i = 0; i < BARRIER_COUNT; i++) {
+      const barrierX = groupStartX + i * (singleBarrierActualWidth + interBarrierGap);
+      let barrier = { x: barrierX, y: currentBarrierY, blocks: [] };
+      for (let row = 0; row < BARRIER_BLOCK_ROWS; row++) {
+        for (let col = 0; col < newBarrierBlockCols; col++) {
+          let blockX = barrier.x + col * BARRIER_BLOCK_SIZE;
+          let blockY = barrier.y + row * BARRIER_BLOCK_SIZE;
+          barrier.blocks.push({ 
+            x: blockX, y: blockY, 
+            width: BARRIER_BLOCK_SIZE, height: BARRIER_BLOCK_SIZE, 
+            alive: true 
+          });
+        }
       }
+      barriers.push(barrier);
     }
-    barriers.push(barrier);
+  } else {
+    // Use the shape pattern
+    for (let i = 0; i < BARRIER_COUNT; i++) {
+      const barrierX = groupStartX + i * (singleBarrierActualWidth + interBarrierGap);
+      let barrier = { x: barrierX, y: currentBarrierY, blocks: [] };
+      for (let row = 0; row < BARRIER_BLOCK_ROWS; row++) {
+        // Ensure the pattern row exists to prevent errors if pattern is shorter than BARRIER_BLOCK_ROWS
+        if (barrierShapePattern[row]) { 
+          for (let col = 0; col < newBarrierBlockCols; col++) {
+            // Ensure the character at col exists to prevent errors if pattern string is shorter
+            if (barrierShapePattern[row].charAt(col) === '1') { 
+              let blockX = barrier.x + col * BARRIER_BLOCK_SIZE;
+              let blockY = barrier.y + row * BARRIER_BLOCK_SIZE;
+              barrier.blocks.push({ 
+                x: blockX, 
+                y: blockY, 
+                width: BARRIER_BLOCK_SIZE, 
+                height: BARRIER_BLOCK_SIZE, 
+                alive: true 
+              });
+            }
+          }
+        }
+      }
+      barriers.push(barrier);
+    }
   }
 }
 
@@ -184,13 +231,13 @@ function playerShoot() {
 }
 
 function enemyShoot() {
-  if (Math.random() < 0.01) { // Adjust probability for desired firing rate
+  if (Math.random() < 0.01) { 
     let aliveEnemies = enemies.filter(e => e.alive);
     if (aliveEnemies.length > 0) {
       let shooter = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
       enemyBullets.push({
         x: shooter.x + shooter.width / 2 - enemyBulletConfig.width / 2,
-        y: shooter.y + shooter.height, // Bottom of the alien
+        y: shooter.y + shooter.height, 
         width: enemyBulletConfig.width,
         height: enemyBulletConfig.height,
         color: enemyBulletConfig.color,
@@ -205,7 +252,7 @@ function startGame() {
   initializeEnemies();
   player.y = canvas.height - 10 - (onScreenControlsEnabled ? osButtonHeight + osPadding : 0);
   initializeBarriers(); 
-  enemyBullets = []; // Clear enemy bullets at game start
+  enemyBullets = []; 
 
   player.x = (canvas.width - player.width) / 2;
   player.isMovingLeftKeyboard = false;
@@ -214,7 +261,7 @@ function startGame() {
   player.isMovingRightTouch = false;
   player.isMovingLeftGamepad = false;
   player.isMovingRightGamepad = false;
-  bullets = []; // Clear player bullets
+  bullets = []; 
   gameWon = false;
   gameState = "playing";
 }
@@ -535,26 +582,21 @@ function updateAndDrawEnemyBullets(ctx) {
     
     let bulletRemoved = false;
 
-    // Collision with player
-    // Player visual top: player.y - player.height - player.barrelHeight
-    // Player visual bottom: player.y (as player.y is bottom line of base)
     const playerVisualTopY = player.y - player.height - player.barrelHeight;
     const playerVisualBottomY = player.y;
 
     if (bullet.x < player.x + player.width &&
         bullet.x + bullet.width > player.x &&
-        bullet.y < playerVisualBottomY && // Bullet's top edge vs player's bottom
-        bullet.y + bullet.height > playerVisualTopY) { // Bullet's bottom edge vs player's top
+        bullet.y < playerVisualBottomY && 
+        bullet.y + bullet.height > playerVisualTopY) { 
       
       gameState = "gameOver"; 
       gameWon = false;
       enemyBullets.splice(i, 1); 
       bulletRemoved = true;
-      // console.log("Player hit by enemy bullet!"); // For debugging
-      continue; // Next bullet, player is hit
+      continue; 
     }
 
-    // Collision with barriers (if not already removed by hitting player)
     if (!bulletRemoved) {
       for (let b = 0; b < barriers.length; b++) {
         const barrier = barriers[b];
@@ -568,15 +610,14 @@ function updateAndDrawEnemyBullets(ctx) {
             block.alive = false;
             enemyBullets.splice(i, 1); 
             bulletRemoved = true;
-            break; // Exit blocks loop
+            break; 
           }
         }
-        if (bulletRemoved) break; // Exit barriers loop
+        if (bulletRemoved) break; 
       }
     }
     
-    // Remove if off-screen (if not already removed)
-    if (!bulletRemoved && bullet.y > canvas.height) { // Check if bullet is below canvas
+    if (!bulletRemoved && bullet.y > canvas.height) { 
       enemyBullets.splice(i, 1);
     }
   }
@@ -633,7 +674,7 @@ function drawBarriers(ctx) {
 }
 
 function checkGameConditions() {
-  if (gameState !== "playing") return; // Only check if currently playing
+  if (gameState !== "playing") return; 
 
   for (const enemy of enemies) {
     if (enemy.alive && enemy.y + enemy.height >= player.y) { 
@@ -656,25 +697,24 @@ function gameLoop() {
     drawSettingsScreen();
   } else if (gameState === "playing") {
     handleGamepadInput(); 
-    enemyShoot(); // Allow enemies to shoot
+    enemyShoot(); 
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     updatePlayer();
     drawPlayer();
     drawBarriers(context); 
     
-    updateAndDrawBullets(); // Player bullets
-    updateAndDrawEnemyBullets(context); // Enemy bullets
+    updateAndDrawBullets(); 
+    updateAndDrawEnemyBullets(context); 
     updateAndDrawEnemies();
     
-    checkGameConditions(); // This might change gameState to "gameOver"
+    checkGameConditions(); 
     
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
     }
 
   } else if (gameState === "gameOver") {
-    // Ensure game logic does not run if game is over
     context.fillStyle = 'rgba(0, 0, 0, 0.75)';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.font = '48px Arial';
