@@ -12,6 +12,14 @@ let currentLevel = 1;
 let stars = [];
 const NUM_STARS = 100; // Adjust for desired density
 
+// Particle System
+let particles = [];
+const PARTICLES_PER_EXPLOSION = 20;
+const PARTICLE_MAX_LIFESPAN_BASE = 30; // Base lifespan frames
+const PARTICLE_MAX_LIFESPAN_RANDOM = 30; // Additional random lifespan frames
+const PARTICLE_MAX_SPEED = 3; // Max initial speed of particles
+const PARTICLE_MIN_SPEED = 1; // Min initial speed
+
 // Player properties
 const player = {
   width: 50,
@@ -311,6 +319,56 @@ function enemyShoot() {
   }
 }
 
+function createExplosion(centerX, centerY, baseColor) {
+    for (let i = 0; i < PARTICLES_PER_EXPLOSION; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * (PARTICLE_MAX_SPEED - PARTICLE_MIN_SPEED) + PARTICLE_MIN_SPEED;
+        const lifespan = Math.random() * PARTICLE_MAX_LIFESPAN_RANDOM + PARTICLE_MAX_LIFESPAN_BASE;
+
+        particles.push({
+            x: centerX,
+            y: centerY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: Math.random() * 2 + 1, // Size between 1 and 3
+            color: baseColor, // Use the destroyed alien's color
+            lifespan: lifespan,
+            maxLifespan: lifespan // Store initial lifespan for potential fading effects
+        });
+    }
+}
+
+function updateAndDrawParticles(ctx) { // Renamed context to ctx for consistency
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const particle = particles[i];
+
+        // Update position
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+
+        // Optional: Apply simple physics
+        particle.vx *= 0.98; // Friction/drag
+        particle.vy *= 0.98; // Friction/drag
+        particle.vy += 0.05; // Gravity
+
+        // Update lifespan
+        particle.lifespan--;
+
+        // Check for removal
+        if (particle.lifespan <= 0) {
+            particles.splice(i, 1);
+            continue; // Move to next particle
+        }
+
+        // Draw particle with fading effect
+        // Ensure alpha is between 0 and 1. Max with 0 prevents negative alpha if lifespan somehow drops far below.
+        ctx.globalAlpha = Math.max(0, particle.lifespan / particle.maxLifespan); 
+        ctx.fillStyle = particle.color;
+        ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+    }
+    ctx.globalAlpha = 1.0; // Reset global alpha after drawing all particles
+}
+
 function resetPlayerPosition() {
     player.x = canvas.width / 2 - player.width / 2;
     let bottomMargin = 10;
@@ -340,6 +398,7 @@ function startGame(isContinuing = false) {
   
   enemyBullets = []; 
   bullets = []; 
+  particles = []; // Clear existing particles
   gameWon = false; 
   // gameState = "playing"; // This will be set by the caller
 }
@@ -593,6 +652,7 @@ canvas.addEventListener('click', function(event) {
         resetPlayerPosition();  // Reset player's position and movement flags
         bullets = [];           // Clear player bullets
         enemyBullets = [];      // Clear enemy bullets
+        particles = []; // Clear existing particles from previous level
         gameState = "playing";  // Transition to playing state
     }
   }
@@ -701,7 +761,10 @@ function updateAndDrawBullets() {
           bullet.x + bullet.width > enemy.x &&
           bullet.y < enemy.y + enemy.height &&
           bullet.y + bullet.height > enemy.y) {
-        enemy.alive = false;
+        
+        enemy.alive = false; // Mark enemy as dead
+        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color);
+        
         score += 10; 
         if (score > highScore) {
             highScore = score;
@@ -890,6 +953,7 @@ function gameLoop() {
     updateAndDrawBullets(); 
     updateAndDrawEnemyBullets(context); 
     updateAndDrawEnemies();
+    updateAndDrawParticles(context);
     
     checkGameConditions(); 
     drawScore(context); 
@@ -943,5 +1007,49 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
 
 [end of game.js]
