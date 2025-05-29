@@ -54,6 +54,7 @@ let startButton = {};
 let settingsButton = {};
 let onScreenControlsToggleButton = {};
 let backButton = {};
+let gameOverToTitleButton = {}; // Added for game over screen
 
 const buttonHeight = 50;
 const buttonPadding = 10;
@@ -260,12 +261,13 @@ function handleGamepadInput() {
 
 // Event Listeners
 document.addEventListener('keydown', function(event) {
-  if (gameState === "gameOver") {
-    if (event.key === 'Enter') {
-      gameState = "title";
-    }
-    return;
-  }
+  // Removed game over 'Enter' key listener
+  // if (gameState === "gameOver") {
+  //   if (event.key === 'Enter') { // or event.code === 'Enter'
+  //     gameState = "title";
+  //   }
+  //   return; 
+  // }
 
   if (gameState === "playing") {
     if (event.key === 'ArrowLeft') {
@@ -296,6 +298,11 @@ function getMousePos(canvasEl, event) {
 }
 
 function isInside(pos, rect) {
+  // Ensure rect is defined and has properties before checking
+  if (!rect || typeof rect.x === 'undefined') {
+    // console.warn("isInside called with undefined or incomplete rect:", rect);
+    return false;
+  }
   return pos.x > rect.x && pos.x < rect.x + rect.width && pos.y < rect.y + rect.height && pos.y > rect.y;
 }
 
@@ -312,6 +319,11 @@ canvas.addEventListener('click', function(event) {
     if (isInside(mousePos, onScreenControlsToggleButton)) {
       onScreenControlsEnabled = !onScreenControlsEnabled;
     } else if (isInside(mousePos, backButton)) {
+      gameState = "title";
+    }
+  } else if (gameState === "gameOver") {
+    // gameOverToTitleButton properties are set in gameLoop when drawing this screen
+    if (isInside(mousePos, gameOverToTitleButton)) {
       gameState = "title";
     }
   }
@@ -488,7 +500,7 @@ function gameLoop() {
     updateAndDrawBullets();
     updateAndDrawEnemies();
     
-    checkGameConditions(); // This will set gameState to "gameOver" if conditions are met
+    checkGameConditions(); 
     
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
@@ -503,9 +515,19 @@ function gameLoop() {
     context.textBaseline = 'middle';
     const message = gameWon ? 'You Win!' : 'Game Over!';
     context.fillText(message, canvas.width / 2, canvas.height / 2);
-    context.font = '24px Arial';
-    context.fillStyle = 'white';
-    context.fillText('Press Enter to Return to Title Screen', canvas.width / 2, canvas.height / 2 + 60);
+    
+    // Define and draw the "Return to Menu" button
+    const buttonWidth = 250; // Adjusted width for better text fit
+    gameOverToTitleButton = {
+        x: canvas.width / 2 - buttonWidth / 2,
+        y: canvas.height / 2 + 60, // Positioned below the game over message
+        width: buttonWidth,
+        height: buttonHeight, // Using global buttonHeight
+        label: "Return to Menu"
+    };
+    drawButton(gameOverToTitleButton);
+
+    // Removed: context.fillText('Press Enter to Return to Title Screen', canvas.width / 2, canvas.height / 2 + 60);
   }
   
   requestAnimationFrame(gameLoop);
