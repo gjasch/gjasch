@@ -1,6 +1,14 @@
 const canvas = document.getElementById('gameCanvas');
 const context = canvas.getContext('2d');
 
+// Score variables
+let score = 0;
+let highScore = 0;
+
+// Level variables
+let currentLevel = 1;
+let levelCompleteDisplayUntil = 0;
+
 // Player properties
 const player = {
   width: 50,
@@ -22,14 +30,50 @@ const player = {
 const enemyConfig = {
   width: 40, 
   height: 30, 
-  color: 'red',
-  speed: 2,
-  rows: 3,
+  color: 'red', // Default color, can be overridden by type
+  speed: 2, // Base speed
+  rows: 3, 
   cols: 8,
   padding: 10,
   marginTop: 30,
   marginLeft: 60
 };
+
+// Alien Shape Patterns
+const alienShapePatterns = {
+    type1: {
+        pattern: [
+            "  1111  ",
+            " 111111 ",
+            "11111111",
+            "11 11 11",
+            "11111111"
+        ],
+        color: "red" 
+    },
+    type2: { 
+        pattern: [
+            "   11   ",
+            "  1111  ",
+            " 111111 ",
+            "11111111",
+            "1  11  1"
+        ],
+        color: "purple" 
+    },
+    type3: { 
+        pattern: [
+            "1  11  1",
+            " 111111 ",
+            "11111111",
+            "11111111",
+            "  1  1  "
+        ],
+        color: "orange" 
+    }
+};
+const alienTypeKeys = Object.keys(alienShapePatterns);
+
 
 let enemies = [];
 let enemyDirection = 1;
@@ -48,7 +92,7 @@ let bullets = [];
 const enemyBulletConfig = { 
   width: 4, 
   height: 10, 
-  color: "pink", // Differentiated from player bullets
+  color: "pink", 
   speed: 4 
 };
 let enemyBullets = [];
@@ -58,13 +102,13 @@ let enemyBullets = [];
 const BARRIER_COUNT = 4;
 const BARRIER_COLOR = player.color; 
 const BARRIER_BLOCK_SIZE = 5; 
-const BARRIER_BLOCK_ROWS = 6; 
+const BARRIER_BLOCK_ROWS = 9; 
 let barriers = [];
 
 
 // Game State
 let gameState = "title"; 
-let gameWon = false;
+let gameWon = false; 
 let onScreenControlsEnabled = false;
 
 // Clickable areas
@@ -73,8 +117,9 @@ let settingsButton = {};
 let onScreenControlsToggleButton = {};
 let backButton = {};
 let gameOverToTitleButton = {}; 
+// continueButtonGameOver will be defined locally in drawing/click handling for game over
 
-const buttonHeight = 50;
+const buttonHeight = 50; // General button height for menu buttons
 const buttonPadding = 10;
 
 // On-screen control buttons
@@ -127,12 +172,17 @@ function initializeEnemies() {
   enemyMoveDown = 0;
   for (let row = 0; row < enemyConfig.rows; row++) {
     for (let col = 0; col < enemyConfig.cols; col++) {
+      const typeIndex = row % alienTypeKeys.length; 
+      const enemyTypeKey = alienTypeKeys[typeIndex];
+      const enemyPatternData = alienShapePatterns[enemyTypeKey];
+
       enemies.push({
         x: enemyConfig.marginLeft + col * (enemyConfig.width + enemyConfig.padding),
         y: enemyConfig.marginTop + row * (enemyConfig.height + enemyConfig.padding),
         width: enemyConfig.width,
         height: enemyConfig.height,
-        color: enemyConfig.color,
+        color: enemyPatternData.color, 
+        type: enemyTypeKey, 
         alive: true
       });
     }
@@ -144,7 +194,7 @@ function initializeBarriers() {
   
   const targetBarrierWidth = player.width * 1.5;
   const newBarrierBlockCols = Math.floor(targetBarrierWidth / BARRIER_BLOCK_SIZE);
-  console.log("Calculated newBarrierBlockCols:", newBarrierBlockCols); // Expected: 15
+  // console.log("Calculated newBarrierBlockCols:", newBarrierBlockCols); // Expected: 15
 
   const singleBarrierActualWidth = newBarrierBlockCols * BARRIER_BLOCK_SIZE;
 
@@ -155,30 +205,27 @@ function initializeBarriers() {
   const playerCannonTopY = player.y - player.height - player.barrelHeight;
   const currentBarrierY = playerCannonTopY - (BARRIER_BLOCK_ROWS * BARRIER_BLOCK_SIZE) - 30; 
 
-  // Barrier shape pattern. Each string must have 'newBarrierBlockCols' characters.
-  // This pattern is designed for newBarrierBlockCols = 15.
-  // It has BARRIER_BLOCK_ROWS (6) elements.
-  const barrierShapePattern = [ 
-      "   111111111   ", // Row 0
-      "  11111111111  ", // Row 1
-      " 1111111111111 ", // Row 2
-      "111111111111111", // Row 3
-      "1111  111  1111", // Row 4 (with gaps)
-      "111        111"  // Row 5 (larger gaps)
+  const barrierShapePattern = [
+      "   111111111   ", 
+      "  11111111111  ", 
+      " 1111111111111 ", 
+      "111111111111111", 
+      "111111111111111", 
+      "111111111111111", 
+      "1111  111  1111", 
+      "111   111   111", 
+      "111         111"  
   ];
 
-  // Check if the pattern width matches the calculated columns.
-  // This is a basic check; more complex adjustments might be needed if they don't match.
-  if (newBarrierBlockCols !== 15) {
+  if (newBarrierBlockCols !== 15) { 
     console.warn(`Barrier shape pattern width (15) does not match calculated newBarrierBlockCols (${newBarrierBlockCols}). Falling back to solid rectangular barriers.`);
-    // Fallback to solid rectangular barriers if pattern doesn't match
     for (let i = 0; i < BARRIER_COUNT; i++) {
       const barrierX = groupStartX + i * (singleBarrierActualWidth + interBarrierGap);
       let barrier = { x: barrierX, y: currentBarrierY, blocks: [] };
-      for (let row = 0; row < BARRIER_BLOCK_ROWS; row++) {
-        for (let col = 0; col < newBarrierBlockCols; col++) {
-          let blockX = barrier.x + col * BARRIER_BLOCK_SIZE;
-          let blockY = barrier.y + row * BARRIER_BLOCK_SIZE;
+      for (let rowIdx = 0; rowIdx < BARRIER_BLOCK_ROWS; rowIdx++) { 
+        for (let colIdx = 0; colIdx < newBarrierBlockCols; colIdx++) {
+          let blockX = barrier.x + colIdx * BARRIER_BLOCK_SIZE;
+          let blockY = barrier.y + rowIdx * BARRIER_BLOCK_SIZE;
           barrier.blocks.push({ 
             x: blockX, y: blockY, 
             width: BARRIER_BLOCK_SIZE, height: BARRIER_BLOCK_SIZE, 
@@ -189,18 +236,15 @@ function initializeBarriers() {
       barriers.push(barrier);
     }
   } else {
-    // Use the shape pattern
     for (let i = 0; i < BARRIER_COUNT; i++) {
       const barrierX = groupStartX + i * (singleBarrierActualWidth + interBarrierGap);
       let barrier = { x: barrierX, y: currentBarrierY, blocks: [] };
-      for (let row = 0; row < BARRIER_BLOCK_ROWS; row++) {
-        // Ensure the pattern row exists to prevent errors if pattern is shorter than BARRIER_BLOCK_ROWS
-        if (barrierShapePattern[row]) { 
-          for (let col = 0; col < newBarrierBlockCols; col++) {
-            // Ensure the character at col exists to prevent errors if pattern string is shorter
-            if (barrierShapePattern[row].charAt(col) === '1') { 
-              let blockX = barrier.x + col * BARRIER_BLOCK_SIZE;
-              let blockY = barrier.y + row * BARRIER_BLOCK_SIZE;
+      for (let rowIdx = 0; rowIdx < BARRIER_BLOCK_ROWS; rowIdx++) {
+        if (barrierShapePattern[rowIdx]) { 
+          for (let colIdx = 0; colIdx < newBarrierBlockCols; colIdx++) {
+            if (barrierShapePattern[rowIdx].charAt(colIdx) === '1') { 
+              let blockX = barrier.x + colIdx * BARRIER_BLOCK_SIZE;
+              let blockY = barrier.y + rowIdx * BARRIER_BLOCK_SIZE;
               barrier.blocks.push({ 
                 x: blockX, 
                 y: blockY, 
@@ -231,7 +275,8 @@ function playerShoot() {
 }
 
 function enemyShoot() {
-  if (Math.random() < 0.01) { 
+  const firingProbability = 0.01 + (currentLevel - 1) * 0.002;
+  if (Math.random() < firingProbability) { 
     let aliveEnemies = enemies.filter(e => e.alive);
     if (aliveEnemies.length > 0) {
       let shooter = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
@@ -247,23 +292,37 @@ function enemyShoot() {
   }
 }
 
+function resetPlayerPosition() {
+    player.x = canvas.width / 2 - player.width / 2;
+    let bottomMargin = 10;
+    let osControlsHeight = 0;
+    if (onScreenControlsEnabled && typeof osLeftButton !== 'undefined' && osLeftButton.height > 0) { 
+         osControlsHeight = osLeftButton.height + osPadding; 
+    }
+    player.y = canvas.height - bottomMargin - osControlsHeight;
+    
+    player.isMovingLeftKeyboard = false; player.isMovingRightKeyboard = false;
+    player.isMovingLeftTouch = false; player.isMovingRightTouch = false;
+    player.isMovingLeftGamepad = false; player.isMovingRightGamepad = false;
+}
 
-function startGame() {
-  initializeEnemies();
-  player.y = canvas.height - 10 - (onScreenControlsEnabled ? osButtonHeight + osPadding : 0);
+
+function startGame(isContinuing = false) {
+  if (!isContinuing) {
+    score = 0; 
+    currentLevel = 1; 
+  }
+  highScore = parseInt(localStorage.getItem('spaceInvadersHighScore')) || 0; 
+
+  resetPlayerPosition(); 
+  
+  initializeEnemies(); // Uses currentLevel for difficulty
   initializeBarriers(); 
+  
   enemyBullets = []; 
-
-  player.x = (canvas.width - player.width) / 2;
-  player.isMovingLeftKeyboard = false;
-  player.isMovingRightKeyboard = false;
-  player.isMovingLeftTouch = false;
-  player.isMovingRightTouch = false;
-  player.isMovingLeftGamepad = false;
-  player.isMovingRightGamepad = false;
   bullets = []; 
-  gameWon = false;
-  gameState = "playing";
+  gameWon = false; 
+  // gameState = "playing"; // This will be set by the caller
 }
 
 function drawButton(button) {
@@ -275,6 +334,30 @@ function drawButton(button) {
   context.textBaseline = 'middle';
   context.fillText(button.label, button.x + button.width / 2, button.y + button.height / 2);
 }
+
+function drawScore(ctx) {
+    ctx.fillStyle = "white";
+    ctx.font = "16px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("Score: " + score, 10, 20); 
+    ctx.fillText("Level: " + currentLevel, 10, 40); 
+    ctx.textAlign = "right";
+    ctx.fillText("High Score: " + highScore, canvas.width - 10, 20); 
+    ctx.textAlign = "left"; 
+}
+
+function drawLevelCompleteMessage(ctx) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.font = "30px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Level " + (currentLevel -1) + " Complete!", canvas.width / 2, canvas.height / 2 - 20);
+    ctx.font = "24px Arial";
+    ctx.fillText("Prepare for Level " + currentLevel, canvas.width / 2, canvas.height / 2 + 20);
+    ctx.textAlign = "left"; 
+}
+
 
 function drawTitleScreen() {
   context.clearRect(0, 0, canvas.width, canvas.height);
@@ -419,7 +502,8 @@ canvas.addEventListener('click', function(event) {
 
   if (gameState === "title") {
     if (isInside(mousePos, startButton)) {
-      startGame();
+      startGame(false); // Explicitly a new game
+      gameState = "playing";
     } else if (isInside(mousePos, settingsButton)) {
       gameState = "settings";
     }
@@ -430,8 +514,24 @@ canvas.addEventListener('click', function(event) {
       gameState = "title";
     }
   } else if (gameState === "gameOver") {
-    if (isInside(mousePos, gameOverToTitleButton)) {
-      gameState = "title";
+    // Define continueButtonGameOver for hit detection, matching its drawn properties
+    const continueButtonGameOver = {
+        x: canvas.width / 2 - 100, // Consistent with drawing
+        y: canvas.height / 2 + 40, 
+        width: 200,
+        height: 40, // Consistent with drawing
+        label: "Continue (Level " + currentLevel + ")" // Label doesn't affect hit box
+    };
+    // gameOverToTitleButton is global, its y is updated in gameLoop for drawing
+    // but for hit detection, we might need to use the updated y or ensure it's consistent
+    // For simplicity, we assume gameOverToTitleButton properties are up-to-date via gameLoop drawing
+    
+    if (isInside(mousePos, continueButtonGameOver)) {
+        startGame(true); // Pass true for continue
+        gameState = "playing";
+    } else if (isInside(mousePos, gameOverToTitleButton)) {
+        // Score and level reset will happen when startGame(false) is called from title.
+        gameState = "title";
     }
   }
 });
@@ -540,6 +640,11 @@ function updateAndDrawBullets() {
           bullet.y < enemy.y + enemy.height &&
           bullet.y + bullet.height > enemy.y) {
         enemy.alive = false;
+        score += 10; 
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('spaceInvadersHighScore', highScore.toString());
+        }
         bullets.splice(i, 1);
         bulletRemovedThisFrame = true;
         break; 
@@ -625,22 +730,29 @@ function updateAndDrawEnemyBullets(ctx) {
 
 
 function drawAlien(enemy, ctx) {
-  ctx.fillStyle = enemy.color;
+  const currentPatternData = alienShapePatterns[enemy.type] || alienShapePatterns.type1;
+  const shape = currentPatternData.pattern;
+  ctx.fillStyle = currentPatternData.color; 
+
   const blockW = enemy.width / 8;  
   const blockH = enemy.height / 5; 
-  ctx.fillRect(enemy.x + blockW * 3, enemy.y, blockW * 2, blockH);
-  ctx.fillRect(enemy.x + blockW * 2, enemy.y + blockH, blockW * 4, blockH);
-  ctx.fillRect(enemy.x + blockW * 1, enemy.y + blockH * 2, blockW * 6, blockH);
-  ctx.fillRect(enemy.x, enemy.y + blockH * 3, enemy.width, blockH);
-  ctx.fillRect(enemy.x + blockW * 1, enemy.y + blockH * 4, blockW * 2, blockH); 
-  ctx.fillRect(enemy.x + blockW * 5, enemy.y + blockH * 4, blockW * 2, blockH); 
+
+  for (let r = 0; r < shape.length; r++) { 
+    for (let c = 0; c < shape[r].length; c++) { 
+      if (shape[r].charAt(c) === '1') {
+        ctx.fillRect(enemy.x + c * blockW, enemy.y + r * blockH, blockW, blockH);
+      }
+    }
+  }
 }
 
 function updateAndDrawEnemies() {
   let hitBoundary = false;
+  let effectiveEnemySpeed = (enemyConfig.speed || 1) + (currentLevel - 1) * 0.2;
+
   enemies.forEach(enemy => {
     if (enemy.alive) {
-      enemy.x += enemyConfig.speed * enemyDirection;
+      enemy.x += effectiveEnemySpeed * enemyDirection;
       if (enemy.x + enemy.width > canvas.width || enemy.x < 0) {
         hitBoundary = true;
       }
@@ -679,13 +791,15 @@ function checkGameConditions() {
   for (const enemy of enemies) {
     if (enemy.alive && enemy.y + enemy.height >= player.y) { 
       gameState = "gameOver";
-      gameWon = false;
+      gameWon = false; 
       return; 
     }
   }
   if (enemies.every(enemy => !enemy.alive)) {
-    gameState = "gameOver";
-    gameWon = true;
+    // currentLevel++; // This is now done when transitioning from levelComplete state
+    gameState = "levelComplete";
+    levelCompleteDisplayUntil = Date.now() + 3000;
+    // gameWon = false; // This should be false until player beats all levels
   }
 }
 
@@ -695,6 +809,16 @@ function gameLoop() {
     drawTitleScreen();
   } else if (gameState === "settings") {
     drawSettingsScreen();
+  } else if (gameState === "levelComplete") {
+    drawLevelCompleteMessage(context); // currentLevel is already incremented for "Prepare for Level X"
+    if (Date.now() > levelCompleteDisplayUntil) {
+        initializeEnemies(); 
+        initializeBarriers(); 
+        resetPlayerPosition();
+        bullets = [];
+        enemyBullets = [];
+        gameState = "playing";
+    }
   } else if (gameState === "playing") {
     handleGamepadInput(); 
     enemyShoot(); 
@@ -709,6 +833,7 @@ function gameLoop() {
     updateAndDrawEnemies();
     
     checkGameConditions(); 
+    drawScore(context); 
     
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
@@ -717,25 +842,42 @@ function gameLoop() {
   } else if (gameState === "gameOver") {
     context.fillStyle = 'rgba(0, 0, 0, 0.75)';
     context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    drawScore(context); 
+
     context.font = '48px Arial';
-    context.fillStyle = gameWon ? 'gold' : 'red';
+    context.fillStyle = gameWon ? 'gold' : 'red'; 
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    const message = gameWon ? 'You Win!' : 'Game Over!';
+    const message = gameWon ? 'You Win!' : 'Game Over!'; 
     context.fillText(message, canvas.width / 2, canvas.height / 2);
     
-    const buttonWidth = 250; 
-    gameOverToTitleButton = {
-        x: canvas.width / 2 - buttonWidth / 2,
-        y: canvas.height / 2 + 60, 
-        width: buttonWidth,
-        height: buttonHeight, 
+    // Define and draw Continue button
+    const continueButtonGameOver = {
+        x: canvas.width / 2 - 100, // Centered
+        y: canvas.height / 2 + 40, // Below "Game Over" text slightly adjusted
+        width: 200,
+        height: 40, // Specific height for this button
+        label: "Continue (Level " + currentLevel + ")"
+    };
+    drawButton(continueButtonGameOver);
+
+    // Define and draw Return to Menu button (adjust Y to be below Continue)
+    gameOverToTitleButton = { // Update global object for hit detection
+        x: canvas.width / 2 - 100, // Centered
+        y: canvas.height / 2 + 40 + continueButtonGameOver.height + 10, // Below continue button
+        width: 200, // Same width as continue for alignment
+        height: 40, // Specific height
         label: "Return to Menu"
     };
     drawButton(gameOverToTitleButton);
+
+    context.textAlign = "left"; 
   }
   
   requestAnimationFrame(gameLoop);
 }
 
 gameLoop();
+
+[end of game.js]
