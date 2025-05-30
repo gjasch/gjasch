@@ -1001,14 +1001,14 @@ function drawPlayer() {
   if (player.isInvincible) {
       const shieldColor = POWERUP_SHIELD_COLOR || '#00FFFF'; 
 
-      const baseAlpha = 0.4;
-      const pulseAmplitude = 0.2;
+      const baseAlpha = 0.5; // Was 0.4
+      const pulseAmplitude = 0.2; // Amplitude remains 0.2, so range is 0.3 to 0.7
       context.globalAlpha = baseAlpha + Math.sin(Date.now() / 150) * pulseAmplitude; 
 
       const visualCenterX = player.x + player.width / 2;
       const visualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
       
-      const shieldRadius = (player.width / 2) + 8; 
+      const shieldRadius = (player.width / 2) + 10; // Was +8
 
       context.fillStyle = shieldColor;
       context.beginPath();
@@ -1358,3 +1358,51 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
