@@ -822,10 +822,15 @@ function updateAndDrawEnemyBullets(ctx) {
         bullet.y < playerVisualBottomY && 
         bullet.y + bullet.height > playerVisualTopY) { 
       
+      // Calculate visual center Y of the player cannon for the explosion origin
+      // player.y is the bottom of the base. player.height is base height. player.barrelHeight is barrel height.
+      const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
+      createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
+
       gameState = "freezeFrame";
-      freezeFrameUntil = Date.now() + 1000; // 1000ms = 1 second
+      freezeFrameUntil = Date.now() + 1000; 
       nextStateAfterFreeze = "gameOver";
-      gameWon = false; // This outcome is determined now
+      gameWon = false; 
       
       enemyBullets.splice(i, 1); 
       bulletRemoved = true;
