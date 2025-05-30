@@ -281,7 +281,6 @@ function initializeBarriers() {
 
   const targetBarrierWidth = player.width * 1.5;
   const newBarrierBlockCols = Math.floor(targetBarrierWidth / BARRIER_BLOCK_SIZE);
-  // console.log("Calculated newBarrierBlockCols:", newBarrierBlockCols);
 
   const singleBarrierActualWidth = newBarrierBlockCols * BARRIER_BLOCK_SIZE;
 
@@ -419,32 +418,28 @@ function createExplosion(centerX, centerY, baseColor, numParticles = PARTICLES_P
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
             size: Math.random() * 2 + 3, // Size between 3 and 5
-            color: baseColor, // Use the destroyed alien's color
+            color: baseColor,
             lifespan: lifespan,
-            maxLifespan: lifespan // Store initial lifespan for potential fading effects
+            maxLifespan: lifespan
         });
     }
 }
 
 function spawnFallingObject() {
     const baseSpawnChance = 0.001 + (currentLevel - 1) * 0.0005;
-    const effectiveSpawnChance = Math.min(baseSpawnChance, 0.02); // Cap at 2% per frame
-
-    // Reduce spawn chance significantly for testing, e.g., 0.01 for more frequent spawns
-    // const effectiveSpawnChance = Math.min(0.02 + (currentLevel - 1) * 0.001, 0.1); // Example for testing
+    const effectiveSpawnChance = Math.min(baseSpawnChance, 0.02);
 
     if (Math.random() < effectiveSpawnChance) {
-        let objectType; // Determined by logic below
         let newObjectProps = {};
 
-        if (Math.random() < 0.7) { // 70% chance for a bomb
-            objectType = "bomb"; // Retained for potential direct use, though newObjectProps.type is primary
+        if (Math.random() < 0.7) {
             newObjectProps = {
                 vy: FALLING_OBJECT_BASE_VY_BOMB,
                 width: BOMB_WIDTH,
                 height: BOMB_HEIGHT,
                 color: BOMB_COLOR,
                 type: "bomb"
+                // Bombs don't have isResting/restingOnBlock
             };
         } else {
             const availablePowerupTypes = ["powerup_shield", "powerup_autofire", "powerup_dualbarrel", "powerup_explosive"];
@@ -457,7 +452,9 @@ function spawnFallingObject() {
                     width: POWERUP_SHIELD_WIDTH,
                     height: POWERUP_SHIELD_HEIGHT,
                     color: POWERUP_SHIELD_COLOR,
-                    type: "powerup_shield"
+                    type: "powerup_shield",
+                    isResting: false,
+                    restingOnBlock: null
                 };
             } else if (selectedPowerupType === "powerup_autofire") {
                 newObjectProps = {
@@ -465,7 +462,9 @@ function spawnFallingObject() {
                     width: POWERUP_AUTOFIRE_WIDTH,
                     height: POWERUP_AUTOFIRE_HEIGHT,
                     color: POWERUP_AUTOFIRE_COLOR,
-                    type: "powerup_autofire"
+                    type: "powerup_autofire",
+                    isResting: false,
+                    restingOnBlock: null
                 };
             } else if (selectedPowerupType === "powerup_dualbarrel") {
                 newObjectProps = {
@@ -473,7 +472,9 @@ function spawnFallingObject() {
                     width: POWERUP_DUALBARREL_WIDTH,
                     height: POWERUP_DUALBARREL_HEIGHT,
                     color: POWERUP_DUALBARREL_COLOR,
-                    type: "powerup_dualbarrel"
+                    type: "powerup_dualbarrel",
+                    isResting: false,
+                    restingOnBlock: null
                 };
             } else if (selectedPowerupType === "powerup_explosive") {
                 newObjectProps = {
@@ -481,55 +482,48 @@ function spawnFallingObject() {
                     width: POWERUP_EXPLOSIVE_WIDTH,
                     height: POWERUP_EXPLOSIVE_HEIGHT,
                     color: POWERUP_EXPLOSIVE_COLOR,
-                    type: "powerup_explosive"
+                    type: "powerup_explosive",
+                    isResting: false,
+                    restingOnBlock: null
                 };
             }
         }
 
-        if (newObjectProps.type) { // Ensure newObjectProps was successfully populated
+        if (newObjectProps.type) {
             fallingObjects.push({
                 x: Math.random() * (canvas.width - newObjectProps.width),
-                y: 0 - newObjectProps.height, // Start just above screen
+                y: 0 - newObjectProps.height,
                 vx: 0,
                 vy: newObjectProps.vy,
                 width: newObjectProps.width,
                 height: newObjectProps.height,
                 type: newObjectProps.type,
-                color: newObjectProps.color
+                color: newObjectProps.color,
+                isResting: newObjectProps.isResting,
+                restingOnBlock: newObjectProps.restingOnBlock
             });
         }
     }
 }
 
-function updateAndDrawParticles(ctx) { // Renamed context to ctx for consistency
+function updateAndDrawParticles(ctx) {
     for (let i = particles.length - 1; i >= 0; i--) {
         const particle = particles[i];
-
-        // Update position
         particle.x += particle.vx;
         particle.y += particle.vy;
-
-        // Optional: Apply simple physics
-        particle.vx *= 0.98; // Friction/drag
-        particle.vy *= 0.98; // Friction/drag
-        particle.vy += 0.05; // Gravity
-
-        // Update lifespan
+        particle.vx *= 0.98;
+        particle.vy *= 0.98;
+        particle.vy += 0.05;
         particle.lifespan--;
-
-        // Check for removal
         if (particle.lifespan <= 0) {
             particles.splice(i, 1);
-            continue; // Move to next particle
+            continue;
         }
-
-        // Draw particle with fading effect
-        // Ensure alpha is between 0 and 1. Max with 0 prevents negative alpha if lifespan somehow drops far below.
         ctx.globalAlpha = Math.max(0, particle.lifespan / particle.maxLifespan);
         ctx.fillStyle = particle.color;
         ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
     }
-    ctx.globalAlpha = 1.0; // Reset global alpha after drawing all particles
+    ctx.globalAlpha = 1.0;
 }
 
 function updateAndDrawFallingObjects(ctx) {
@@ -537,18 +531,120 @@ function updateAndDrawFallingObjects(ctx) {
         const obj = fallingObjects[i];
         let objectRemovedThisFrame = false;
 
-        obj.y += obj.vy;
-        obj.x += obj.vx; // For bouncing later
-        obj.vy += FALLING_OBJECT_GRAVITY; // Apply gravity
+        // Physics update based on resting state
+        if (obj.type && obj.type.startsWith("powerup_") && obj.isResting) {
+            if (obj.restingOnBlock && !obj.restingOnBlock.alive) {
+                obj.isResting = false;
+                obj.restingOnBlock = null;
+                obj.vy = FALLING_OBJECT_BASE_VY_POWERUP * 0.5;
+
+                obj.x += obj.vx;
+                obj.y += obj.vy;
+                obj.vy += FALLING_OBJECT_GRAVITY;
+            } else if (obj.restingOnBlock) {
+                obj.y = obj.restingOnBlock.y - obj.height;
+                obj.x = obj.restingOnBlock.x + (obj.restingOnBlock.width / 2) - (obj.width / 2);
+                obj.vx = 0;
+                obj.vy = 0;
+            } else {
+                obj.isResting = false;
+                obj.vy = FALLING_OBJECT_BASE_VY_POWERUP * 0.5;
+                obj.x += obj.vx;
+                obj.y += obj.vy;
+                obj.vy += FALLING_OBJECT_GRAVITY;
+            }
+        } else {
+            obj.x += obj.vx;
+            obj.y += obj.vy;
+            obj.vy += FALLING_OBJECT_GRAVITY;
+        }
+
+        if (!obj.isResting && obj.vx !== 0) {
+             obj.vx *= 0.90;
+             if (Math.abs(obj.vx) < 0.1) {
+                 obj.vx = 0;
+             }
+        }
+
+        // Drawing logic (remains the same as before this specific subtask)
+        if (obj.type === "bomb") {
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2.8;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = obj.color;
+            ctx.fill();
+            ctx.closePath();
+            const fuseWidth = 4;
+            const fuseHeight = 6;
+            const fuseX = centerX - fuseWidth / 2;
+            const fuseY = centerY - radius - fuseHeight + (radius * 0.2);
+            ctx.fillStyle = '#555555';
+            ctx.fillRect(fuseX, fuseY, fuseWidth, fuseHeight);
+            if (Math.floor(Date.now() / 250) % 2 === 0) {
+                ctx.fillStyle = 'orange';
+                const sparkSize = 3;
+                ctx.fillRect(fuseX + fuseWidth / 2 - sparkSize / 2, fuseY - sparkSize / 2, sparkSize, sparkSize);
+            }
+        } else if (obj.type === "powerup_shield") {
+            ctx.fillStyle = obj.color;
+            ctx.beginPath();
+            ctx.moveTo(obj.x, obj.y);
+            ctx.lineTo(obj.x + obj.width, obj.y);
+            ctx.lineTo(obj.x + obj.width, obj.y + obj.height * 0.65);
+            ctx.lineTo(obj.x + obj.width / 2, obj.y + obj.height);
+            ctx.lineTo(obj.x, obj.y + obj.height * 0.65);
+            ctx.closePath();
+            ctx.fill();
+        } else if (obj.type === "powerup_autofire") {
+            ctx.fillStyle = obj.color;
+            const iconCount = 3;
+            const iconWidth = obj.width / 4.5;
+            const iconHeight = obj.height * 0.65;
+            const totalIconsWidth = iconCount * iconWidth;
+            const spaceBetweenIcons = iconWidth / 2.5;
+            const totalGroupWidth = totalIconsWidth + (iconCount - 1) * spaceBetweenIcons;
+            const startXOffset = (obj.width - totalGroupWidth) / 2;
+            const startY = obj.y + (obj.height - iconHeight) / 2;
+            for (let k = 0; k < iconCount; k++) { // Changed loop variable from i to k
+                const currentX = obj.x + startXOffset + k * (iconWidth + spaceBetweenIcons);
+                ctx.fillRect(currentX, startY, iconWidth, iconHeight);
+            }
+        } else if (obj.type === "powerup_dualbarrel") {
+            ctx.fillStyle = obj.color;
+            const barrelCount = 2;
+            const barrelIconWidth = obj.width / 4;
+            const barrelIconHeight = obj.height * 0.7;
+            const spacingBetweenBarrels = obj.width / 8;
+            const totalGroupWidth = (barrelCount * barrelIconWidth) + ((barrelCount - 1) * spacingBetweenBarrels);
+            const startXOverall = obj.x + (obj.width - totalGroupWidth) / 2;
+            const startY = obj.y + (obj.height - barrelIconHeight) / 2;
+            for (let k = 0; k < barrelCount; k++) { // Changed loop variable from i to k
+                const currentX = startXOverall + k * (barrelIconWidth + spacingBetweenBarrels);
+                ctx.fillRect(currentX, startY, barrelIconWidth, barrelIconHeight);
+            }
+        } else if (obj.type === "powerup_explosive") {
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = obj.color;
+            ctx.fill();
+            ctx.closePath();
+        } else {
+            ctx.fillStyle = obj.color;
+            ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        }
 
         // Barrier Collision Logic
-        let objectHitBarrierThisFrame = false; // Renamed from prompt's objectHitBarrierFlag for consistency
+        let objectHitBarrierFlag = false;
         for (let b = 0; b < barriers.length; b++) {
             const barrier = barriers[b];
-            for (let k = 0; k < barrier.blocks.length; k++) {
-                const block = barrier.blocks[k];
+            for (let k_block = 0; k_block < barrier.blocks.length; k_block++) { // Renamed k to k_block
+                const block = barrier.blocks[k_block];
                 if (block.alive) {
-                    // AABB collision check between obj and block
                     if (obj.x < block.x + block.width &&
                         obj.x + obj.width > block.x &&
                         obj.y < block.y + block.height &&
@@ -556,15 +652,9 @@ function updateAndDrawFallingObjects(ctx) {
 
                         if (obj.type === "bomb") {
                             const impactX = obj.x + obj.width / 2;
-                            const impactY = obj.y + obj.height / 2; // Center of bomb as impact
-
-                            // 1. Destroy the directly hit block
+                            const impactY = obj.y + obj.height / 2;
                             block.alive = false;
-
-                            // 2. Create bomb-barrier explosion particles
                             createExplosion(impactX, impactY, BOMB_BARRIER_EXPLOSION_COLOR, BOMB_BARRIER_EXPLOSION_PARTICLES, 0.8);
-
-                            // 3. Apply AoE damage to other barrier blocks
                             barriers.forEach(currentBarrierSearch => {
                                 currentBarrierSearch.blocks.forEach(otherBlockSearch => {
                                     if (otherBlockSearch.alive && otherBlockSearch !== block) {
@@ -578,138 +668,49 @@ function updateAndDrawFallingObjects(ctx) {
                                     }
                                 });
                             });
-
-                            // 4. Remove the bomb itself
                             fallingObjects.splice(i, 1);
                             objectRemovedThisFrame = true;
-
                         } else if (obj.type.startsWith("powerup_")) {
-                            fallingObjects.splice(i, 1); // Remove the power-up
-                            objectRemovedThisFrame = true; // Signal that the object was removed
-                            // objectHitBarrierThisFrame will be set true below, common for any hit
-                        }
+                            const objCenterX = obj.x + obj.width / 2;
+                            const objBottom = obj.y + obj.height;
+                            const blockTop = block.y;
+                            const blockCenterX = block.x + block.width / 2;
+                            const restYThreshold = block.y + block.height * 0.3;
 
-                        objectHitBarrierThisFrame = true;
+                            if (obj.vy >= -0.5 &&
+                                objBottom >= block.y && obj.y < restYThreshold &&
+                                obj.x + obj.width > block.x && obj.x < block.x + block.width) {
+                                const overlapY = (obj.y + obj.height) - block.y;
+                                if (overlapY > 0 && overlapY < obj.vy + block.height*0.5 && obj.vy >= 0) {
+                                    obj.isResting = true;
+                                    obj.restingOnBlock = block;
+                                    obj.vy = 0;
+                                    obj.vx = 0;
+                                    obj.y = block.y - obj.height;
+                                } else {
+                                    obj.isResting = false;
+                                    obj.vx = (objCenterX < blockCenterX ? -1.0 : 1.0) * 1.0;
+                                    obj.x = (objCenterX < blockCenterX ? block.x - obj.width - 1 : block.x + block.width + 1);
+                                }
+                            } else {
+                                obj.isResting = false;
+                                obj.vx = (objCenterX < blockCenterX ? -1.0 : 1.0) * 1.0;
+                                obj.x = (objCenterX < blockCenterX ? block.x - obj.width - 1 : block.x + block.width + 1);
+                            }
+                        }
+                        objectHitBarrierFlag = true;
                         break;
                     }
                 }
             }
-            if (objectHitBarrierThisFrame) {
-                break;
-            }
+            if (objectHitBarrierFlag) break;
         }
-        // End Barrier Collision Logic
 
-        if (objectRemovedThisFrame) { // If bomb exploded and was removed by barrier collision
+        if (objectRemovedThisFrame) {
             continue;
         }
 
-        if (obj.type === "bomb") {
-            // Bomb Body (Circle)
-            const centerX = obj.x + obj.width / 2;
-            const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2.8; // Slightly smaller than half width for fuse space
-
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
-            ctx.fillStyle = obj.color; // BOMB_COLOR (maroon)
-            ctx.fill();
-            ctx.closePath();
-
-            // Fuse (Small Rectangle on top)
-            const fuseWidth = 4;
-            const fuseHeight = 6;
-            const fuseX = centerX - fuseWidth / 2;
-            // Place fuse Y so it appears to come out of the top of the circle body
-            const fuseY = centerY - radius - fuseHeight + (radius * 0.2); // Adjust '+2' for visual preference
-
-            ctx.fillStyle = '#555555'; // Dark gray for the fuse
-            ctx.fillRect(fuseX, fuseY, fuseWidth, fuseHeight);
-
-            // Add blinking spark:
-            if (Math.floor(Date.now() / 250) % 2 === 0) { // Blink state changes every 250ms
-                ctx.fillStyle = 'orange'; // Color of the spark
-                // fuseX, fuseY, fuseWidth are variables from the fuse drawing logic just above this new code.
-                // Ensure these variables are correctly scoped or accessed.
-                // Spark size, e.g., 3x3 pixels.
-                const sparkSize = 3;
-                // Position the spark at the top-center of the fuse stem.
-                ctx.fillRect(fuseX + fuseWidth / 2 - sparkSize / 2, fuseY - sparkSize / 2, sparkSize, sparkSize);
-            }
-
-        } else if (obj.type === "powerup_shield") {
-            ctx.fillStyle = obj.color; // POWERUP_SHIELD_COLOR (Cyan)
-            ctx.beginPath();
-            // Top-left corner of the bounding box
-            ctx.moveTo(obj.x, obj.y);
-            // Top-right corner
-            ctx.lineTo(obj.x + obj.width, obj.y);
-            // Bottom-right point of the shield's "shoulders"
-            ctx.lineTo(obj.x + obj.width, obj.y + obj.height * 0.65);
-            // Tip of the shield (bottom center)
-            ctx.lineTo(obj.x + obj.width / 2, obj.y + obj.height);
-            // Bottom-left point of the shield's "shoulders"
-            ctx.lineTo(obj.x, obj.y + obj.height * 0.65);
-            // Close path back to top-left
-            ctx.closePath();
-            ctx.fill();
-        } else if (obj.type === "powerup_autofire") {
-            ctx.fillStyle = obj.color; // POWERUP_AUTOFIRE_COLOR (Orange)
-
-            const iconCount = 3;
-            // Make icons slightly thinner than a direct division by 3 to allow spacing
-            const iconWidth = obj.width / 4.5;
-            const iconHeight = obj.height * 0.65; // Make them clearly taller than wide
-
-            // Calculate total width occupied by icons and spaces to center the group
-            const totalIconsWidth = iconCount * iconWidth;
-            // Aim for roughly iconWidth / 2 as spacing between icons
-            const spaceBetweenIcons = iconWidth / 2.5;
-            const totalGroupWidth = totalIconsWidth + (iconCount - 1) * spaceBetweenIcons;
-
-            const startXOffset = (obj.width - totalGroupWidth) / 2; // Offset from obj.x to center the group
-            const startY = obj.y + (obj.height - iconHeight) / 2;    // Offset from obj.y to center vertically
-
-            for (let i = 0; i < iconCount; i++) {
-                const currentX = obj.x + startXOffset + i * (iconWidth + spaceBetweenIcons);
-                ctx.fillRect(currentX, startY, iconWidth, iconHeight);
-            }
-        } else if (obj.type === "powerup_dualbarrel") {
-            ctx.fillStyle = obj.color; // POWERUP_DUALBARREL_COLOR (Bright Green)
-
-            const barrelCount = 2;
-            const barrelIconWidth = obj.width / 4; // e.g., 5px for a 20px obj.width
-            const barrelIconHeight = obj.height * 0.7; // e.g., 14px, making them taller than wide
-
-            // Spacing between the two barrels
-            const spacingBetweenBarrels = obj.width / 8; // e.g., 2.5px
-
-            const totalGroupWidth = (barrelCount * barrelIconWidth) + ((barrelCount - 1) * spacingBetweenBarrels);
-
-            const startXOverall = obj.x + (obj.width - totalGroupWidth) / 2; // Initial X to center the group
-            const startY = obj.y + (obj.height - barrelIconHeight) / 2;    // Y to center icons vertically
-
-            for (let i = 0; i < barrelCount; i++) {
-                const currentX = startXOverall + i * (barrelIconWidth + spacingBetweenBarrels);
-                ctx.fillRect(currentX, startY, barrelIconWidth, barrelIconHeight);
-            }
-        } else if (obj.type === "powerup_explosive") {
-            const centerX = obj.x + obj.width / 2;
-            const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2;
-
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
-            ctx.fillStyle = obj.color; // Should be POWERUP_EXPLOSIVE_COLOR
-            ctx.fill();
-            ctx.closePath();
-        } else {
-            // Default drawing for any other future types
-            ctx.fillStyle = obj.color;
-            ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
-        }
-
-        // Player Collision Logic
+        // Player Collision Logic (remains the same)
         const playerVisualTopY = player.y - player.height - player.barrelHeight;
         const playerVisualBottomY = player.y;
 
@@ -718,104 +719,72 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&
                 obj.y + obj.height > playerVisualTopY) {
-
-                if (!player.isInvincible) { // Player is NOT invincible
+                if (!player.isInvincible) {
                     const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
                     createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
-
                     gameState = "freezeFrame";
                     freezeFrameUntil = Date.now() + 1000;
                     nextStateAfterFreeze = "gameOver";
                     gameWon = false;
-
                     fallingObjects.splice(i, 1);
                     continue;
-                } else { // Player IS invincible
+                } else {
                     fallingObjects.splice(i, 1);
-                    // console.log("Player invincible, bomb destroyed by shield!");
                     continue;
                 }
             }
         } else if (obj.type === "powerup_shield") {
-            // const playerVisualTopY = player.y - player.height - player.barrelHeight; // Already defined above
-            // const playerVisualBottomY = player.y; // Already defined above
-
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&
                 obj.y + obj.height > playerVisualTopY) {
-
                 player.isInvincible = true;
                 player.invincibilityTimer = INVINCIBILITY_DURATION_FRAMES;
                 powerupMessage = "Shield Activated!";
                 powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
-                // console.log("Shield Activated!");
-
                 fallingObjects.splice(i, 1);
                 continue;
             }
         } else if (obj.type === "powerup_autofire") {
-            // AABB collision check with player (copy from powerup_shield)
-            const playerVisualTopY = player.y - player.height - player.barrelHeight;
-            const playerVisualBottomY = player.y;
-
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&
                 obj.y + obj.height > playerVisualTopY) {
-
                 player.hasAutoFire = true;
                 player.autoFireTimer = AUTOFIRE_DURATION_FRAMES;
-                player.autoFireNextShotTimer = 0; // Allow immediate first shot if fire is held
-
-                powerupMessage = "Auto Fire On!"; // Or "Rapid Fire!"
+                player.autoFireNextShotTimer = 0;
+                powerupMessage = "Auto Fire On!";
                 powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
-
-                fallingObjects.splice(i, 1); // Remove the power-up
-                continue; // Skip to the next falling object
+                fallingObjects.splice(i, 1);
+                continue;
             }
         } else if (obj.type === "powerup_dualbarrel") {
-            // AABB collision check with player (copy from other powerup types)
-            const playerVisualTopY = player.y - player.height - player.barrelHeight;
-            const playerVisualBottomY = player.y;
-
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&
                 obj.y + obj.height > playerVisualTopY) {
-
                 player.hasDualBarrel = true;
                 player.dualBarrelTimer = DUALBARREL_DURATION_FRAMES;
-
                 powerupMessage = "Dual Barrel Active!";
                 powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
-
-                fallingObjects.splice(i, 1); // Remove the power-up
-                continue; // Skip to the next falling object
+                fallingObjects.splice(i, 1);
+                continue;
             }
         } else if (obj.type === "powerup_explosive") {
-            // AABB collision check with player (copy from other powerup types)
-            const playerVisualTopY = player.y - player.height - player.barrelHeight;
-            const playerVisualBottomY = player.y;
-
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&
                 obj.y + obj.height > playerVisualTopY) {
-
                 player.hasExplosiveBullets = true;
                 player.explosiveBulletsTimer = EXPLOSIVE_BULLETS_DURATION_FRAMES;
-
                 powerupMessage = "Explosive Bullets!";
                 powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
-
-                fallingObjects.splice(i, 1); // Remove the power-up
-                continue; // Skip to the next falling object
+                fallingObjects.splice(i, 1);
+                continue;
             }
         }
 
-        // Off-Screen Removal (if not already removed by collision)
-        if (obj.y > canvas.height) { // This check is now safe due to 'continue' in collision blocks
+        if (obj.y > canvas.height) {
             fallingObjects.splice(i, 1);
         }
     }
@@ -857,19 +826,18 @@ function startGame(isContinuing = false) {
 
   resetPlayerPosition();
 
-  initializeEnemies(); // Uses currentLevel for difficulty
+  initializeEnemies();
   initializeBarriers();
 
   enemyBullets = [];
   bullets = [];
-  particles = []; // Clear existing particles
-  fallingObjects = []; // Clear falling objects
+  particles = [];
+  fallingObjects = [];
   gameWon = false;
-  // gameState = "playing"; // This will be set by the caller
 }
 
 function drawButton(button) {
-  context.fillStyle = '#777777'; // Was 'gray'
+  context.fillStyle = '#777777';
   context.fillRect(button.x, button.y, button.width, button.height);
   context.fillStyle = 'white';
   context.font = '24px Arial';
@@ -891,12 +859,11 @@ function drawScore(ctx) {
 
 function drawPowerupMessage(ctx) {
     if (powerupMessage !== "") {
-        ctx.fillStyle = "yellow"; // Make it stand out, e.g., yellow
+        ctx.fillStyle = "yellow";
         ctx.font = "22px Arial";
         ctx.textAlign = "center";
-        // Position it below the score/level display, e.g. score is at y=20, level y=40.
         ctx.fillText(powerupMessage, canvas.width / 2, 70);
-        ctx.textAlign = "left"; // Reset textAlign
+        ctx.textAlign = "left";
     }
 }
 
@@ -911,25 +878,24 @@ function drawLevelCompleteMessage(ctx) {
     ctx.fillText("Ready for next wave?", canvas.width / 2, canvas.height / 2 + 20);
     ctx.textAlign = "left";
 
-    const newButtonWidth = 280; // Increased width for padding
-    // const buttonHeight = 50; // Standard button height is already globally defined
+    const newButtonWidth = 280;
     readyButtonLevelComplete = {
-        x: canvas.width / 2 - newButtonWidth / 2, // Recalculate x to stay centered
-        y: canvas.height / 2 + 60, // y position can remain the same or be adjusted if needed
+        x: canvas.width / 2 - newButtonWidth / 2,
+        y: canvas.height / 2 + 60,
         width: newButtonWidth,
-        height: buttonHeight, // Uses global buttonHeight
-        label: "Start Level " + currentLevel // New label
+        height: buttonHeight,
+        label: "Start Level " + currentLevel
     };
-    drawButton(readyButtonLevelComplete); // Use the existing drawButton helper
+    drawButton(readyButtonLevelComplete);
 }
 
 function initializeStars() {
-    stars = []; // Clear existing stars
+    stars = [];
     for (let i = 0; i < NUM_STARS; i++) {
         stars.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            size: Math.random() * 2 + 1 // Star size between 1 and 3
+            size: Math.random() * 2 + 1
         });
     }
 }
@@ -1037,19 +1003,19 @@ function handleGamepadInput() {
 
       const fireButtonIndex = 0;
       if (gp.buttons[fireButtonIndex] && gp.buttons[fireButtonIndex].pressed) {
-        if (!player.isTryingToFireGamepad && !player.hasAutoFire) { // First press and not autofire
+        if (!player.isTryingToFireGamepad && !player.hasAutoFire) {
             playerShoot();
         }
         player.isTryingToFireGamepad = true;
       } else {
-        player.isTryingToFireGamepad = false; // Button is not pressed
+        player.isTryingToFireGamepad = false;
       }
     }
   }
 }
 
-function handlePlayerFiring() { // Call this from gameLoop "playing" state, or from updatePlayer
-    if (!player.hasAutoFire) return; // Only applies to auto-fire mode
+function handlePlayerFiring() {
+    if (!player.hasAutoFire) return;
 
     const isFireInputActive = player.isTryingToFireKeyboard || player.isTryingToFireTouch || player.isTryingToFireGamepad;
 
@@ -1067,10 +1033,10 @@ document.addEventListener('keydown', function(event) {
     } else if (event.key === 'ArrowRight') {
       player.isMovingRightKeyboard = true;
     } else if (event.code === 'Space') {
-      if (!player.isTryingToFireKeyboard && !player.hasAutoFire) { // First press and not autofire
+      if (!player.isTryingToFireKeyboard && !player.hasAutoFire) {
           playerShoot();
       }
-      player.isTryingToFireKeyboard = true; // Set flag regardless
+      player.isTryingToFireKeyboard = true;
     }
   }
 });
@@ -1106,7 +1072,7 @@ canvas.addEventListener('click', function(event) {
 
   if (gameState === "title") {
     if (isInside(mousePos, startButton)) {
-      startGame(false); // Explicitly a new game
+      startGame(false);
       gameState = "playing";
     } else if (isInside(mousePos, settingsButton)) {
       gameState = "settings";
@@ -1118,40 +1084,29 @@ canvas.addEventListener('click', function(event) {
       gameState = "title";
     }
   } else if (gameState === "gameOver") {
-    // Define continueButtonGameOver for hit detection, matching its drawn properties
     const continueButtonGameOver = {
-        x: canvas.width / 2 - 100, // Consistent with drawing
+        x: canvas.width / 2 - 100,
         y: canvas.height / 2 + 40,
         width: 200,
-        height: 40, // Consistent with drawing
-        label: "Continue (Level " + currentLevel + ")" // Label doesn't affect hit box
+        height: 40,
+        label: "Continue (Level " + currentLevel + ")"
     };
-    // gameOverToTitleButton is global, its y is updated in gameLoop for drawing
-    // but for hit detection, we might need to use the updated y or ensure it's consistent
-    // For simplicity, we assume gameOverToTitleButton properties are up-to-date via gameLoop drawing
-
     if (isInside(mousePos, continueButtonGameOver)) {
-        startGame(true); // Pass true for continue
+        startGame(true);
         gameState = "playing";
     } else if (isInside(mousePos, gameOverToTitleButton)) {
-        // Score and level reset will happen when startGame(false) is called from title.
         gameState = "title";
     }
   } else if (gameState === "levelComplete") {
-    // const mousePos = getMousePos(canvas, event); // mousePos is already available in this scope
-
-    // readyButtonLevelComplete is global and its properties (x, y, width, height)
-    // are updated by drawLevelCompleteMessage before this click could occur for that screen.
     if (isInside(mousePos, readyButtonLevelComplete)) {
-        // Logic to start the next level
-        initializeEnemies();    // Uses currentLevel which should have been incremented
-        initializeBarriers();   // Reset barriers
-        resetPlayerPosition();  // Reset player's position and movement flags
-        bullets = [];           // Clear player bullets
-        enemyBullets = [];      // Clear enemy bullets
-        particles = []; // Clear existing particles from previous level
-        fallingObjects = []; // Clear falling objects
-        gameState = "playing";  // Transition to playing state
+        initializeEnemies();
+        initializeBarriers();
+        resetPlayerPosition();
+        bullets = [];
+        enemyBullets = [];
+        particles = [];
+        fallingObjects = [];
+        gameState = "playing";
     }
   }
 });
@@ -1171,10 +1126,10 @@ canvas.addEventListener('touchstart', function(e) {
         actionTaken = true;
       }
       if (isInside(touchPos, osFireButton)) {
-        if (!player.isTryingToFireTouch && !player.hasAutoFire) { // First press and not autofire
+        if (!player.isTryingToFireTouch && !player.hasAutoFire) {
             playerShoot();
         }
-        player.isTryingToFireTouch = true; // Set flag regardless
+        player.isTryingToFireTouch = true;
         actionTaken = true;
       }
     }
@@ -1191,10 +1146,8 @@ canvas.addEventListener('touchend', function(e) {
       const touch = e.changedTouches[i];
       const touchPos = getMousePos(canvas, touch);
 
-      // Check if the touch that ended was on the fire button
       if (isInside(touchPos, osFireButton)) {
           player.isTryingToFireTouch = false;
-          // actionTaken = true; // Not strictly needed to set actionTaken here unless other logic depends on it
       }
 
       if (player.isMovingLeftTouch && !isInside(touchPos, osRightButton)) {
@@ -1233,15 +1186,12 @@ function updatePlayer() {
     player.invincibilityTimer--;
     if (player.invincibilityTimer <= 0) {
         player.isInvincible = false;
-        // No need to reset timer to 0 here, it's done or implicitly handled
     }
   }
-  // After invincibility logic in updatePlayer():
   if (player.hasAutoFire) {
       player.autoFireTimer--;
       if (player.autoFireTimer <= 0) {
           player.hasAutoFire = false;
-          // No need to reset autoFireNextShotTimer here, it just won't be used.
       }
   }
   if (player.autoFireNextShotTimer > 0) {
@@ -1276,22 +1226,17 @@ function drawPlayer() {
 
   if (player.isInvincible) {
       const shieldColor = POWERUP_SHIELD_COLOR || '#00FFFF';
-
-      const baseAlpha = 0.5; // Was 0.4
-      const pulseAmplitude = 0.2; // Amplitude remains 0.2, so range is 0.3 to 0.7
+      const baseAlpha = 0.5;
+      const pulseAmplitude = 0.2;
       context.globalAlpha = baseAlpha + Math.sin(Date.now() / 150) * pulseAmplitude;
-
       const visualCenterX = player.x + player.width / 2;
       const visualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
-
-      const shieldRadius = (player.width / 2) + 10; // Was +8
-
+      const shieldRadius = (player.width / 2) + 10;
       context.fillStyle = shieldColor;
       context.beginPath();
       context.arc(visualCenterX, visualCenterY, shieldRadius, 0, Math.PI * 2, false);
       context.fill();
       context.closePath();
-
       context.globalAlpha = 1.0;
   }
 }
@@ -1325,13 +1270,10 @@ function updateAndDrawBullets() {
 
             enemy.alive = false;
             score += 10;
-            createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color); // Standard enemy death
+            createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color);
 
             if (player.hasExplosiveBullets) {
-                // Create the bullet's own explosion effect
                 createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 0.75);
-
-                // AoE damage to other enemies
                 enemies.forEach(otherEnemy => {
                     if (otherEnemy.alive && otherEnemy !== enemy) {
                         const dist = Math.sqrt(
@@ -1340,12 +1282,11 @@ function updateAndDrawBullets() {
                         );
                         if (dist < EXPLOSION_RADIUS) {
                             otherEnemy.alive = false;
-                            score += 10; // Score for AoE kill
+                            score += 10;
                             createExplosion(otherEnemy.x + otherEnemy.width / 2, otherEnemy.y + otherEnemy.height / 2, otherEnemy.color);
                         }
                     }
                 });
-                // AoE damage to barriers
                 barriers.forEach(barrier => {
                     barrier.blocks.forEach(b => {
                         if (b.alive) {
@@ -1383,12 +1324,10 @@ function updateAndDrawBullets() {
             const impactX = bullet.x + bullet.width / 2;
             const impactY = bullet.y;
 
-            block.alive = false; // Direct hit block
+            block.alive = false;
 
             if (player.hasExplosiveBullets) {
                 createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 0.75);
-
-                // AoE damage to OTHER barrier blocks (not the one directly hit)
                 barriers.forEach(barrier => {
                     barrier.blocks.forEach(otherBlock => {
                         if (otherBlock.alive && otherBlock !== block) {
@@ -1402,7 +1341,6 @@ function updateAndDrawBullets() {
                         }
                     });
                 });
-                // AoE damage to enemies from barrier hit
                 enemies.forEach(e => {
                     if (e.alive) {
                         const dist = Math.sqrt(
@@ -1447,20 +1385,16 @@ function updateAndDrawEnemyBullets(ctx) {
         bullet.y < playerVisualBottomY &&
         bullet.y + bullet.height > playerVisualTopY) {
 
-        if (!player.isInvincible) { // Player is NOT invincible
+        if (!player.isInvincible) {
             const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
             createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
-
             gameState = "freezeFrame";
             freezeFrameUntil = Date.now() + 1000;
             nextStateAfterFreeze = "gameOver";
             gameWon = false;
         } else {
-            // Player IS invincible. Optionally, add different feedback here later.
             // console.log("Player invincible, bullet absorbed by shield!");
         }
-
-        // Bullet is consumed regardless of invincibility.
         enemyBullets.splice(i, 1);
         bulletRemoved = true;
         continue;
@@ -1557,26 +1491,23 @@ function checkGameConditions() {
       gameState = "freezeFrame";
       freezeFrameUntil = Date.now() + 1000;
       nextStateAfterFreeze = "gameOver";
-      gameWon = false; // Outcome determined
-      return; // Still exit the function
+      gameWon = false;
+      return;
     }
   }
   if (enemies.every(enemy => !enemy.alive)) {
     gameState = "freezeFrame";
-    freezeFrameUntil = Date.now() + 1000; // 1-second freeze
+    freezeFrameUntil = Date.now() + 1000;
     nextStateAfterFreeze = "levelComplete";
-    // currentLevel will be incremented after the freeze, before showing the level complete message.
-    // gameWon = false; // This should be false until player beats all levels
   }
 }
 
 // --- Game Loop ---
 function gameLoop() {
-  // At the start of gameLoop()
   if (powerupMessageTimer > 0) {
       powerupMessageTimer--;
       if (powerupMessageTimer <= 0) {
-          powerupMessage = ""; // Clear message when timer expires
+          powerupMessage = "";
       }
   }
   if (gameState === "title") {
@@ -1587,120 +1518,143 @@ function gameLoop() {
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
     drawStars(context);
-    drawLevelCompleteMessage(context); // Draws its own overlay over stars
-    // The logic to start the next level will be triggered by a button click later.
+    drawLevelCompleteMessage(context);
   } else if (gameState === "freezeFrame") {
-    // 1. Drawing Logic (most things are static)
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
     drawStars(context);
-
-    drawPlayer(); // Player is static, no updatePlayer() call
-    drawBarriers(context); // Barriers are static
-
-    // Draw static player bullets
+    drawPlayer();
+    drawBarriers(context);
     context.fillStyle = bulletConfig.color;
-    for (let i = 0; i < bullets.length; i++) { // Use standard for loop for safety
+    for (let i = 0; i < bullets.length; i++) {
         const bullet = bullets[i];
         context.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     }
-
-    // Draw static enemy bullets
     context.fillStyle = enemyBulletConfig.color;
-    for (let i = 0; i < enemyBullets.length; i++) { // Use standard for loop
+    for (let i = 0; i < enemyBullets.length; i++) {
         const bullet = enemyBullets[i];
         context.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     }
-
-    // Draw static enemies
-    for (let i = 0; i < enemies.length; i++) { // Use standard for loop
+    for (let i = 0; i < enemies.length; i++) {
         const enemy = enemies[i];
         if (enemy.alive) {
-            drawAlien(enemy, context); // No enemy position updates
+            drawAlien(enemy, context);
         }
     }
-
-    updateAndDrawParticles(context); // Particles continue to update and draw
-
-    drawScore(context); // Score display is static
-
-    // 2. Check Timer and Transition Logic
+    updateAndDrawParticles(context);
+    drawScore(context);
     if (Date.now() > freezeFrameUntil) {
         if (nextStateAfterFreeze === "levelComplete") {
-            currentLevel++; // Increment level just before showing "Level Complete" screen
+            currentLevel++;
         }
         gameState = nextStateAfterFreeze;
-        nextStateAfterFreeze = ""; // Reset for future use (good practice)
+        nextStateAfterFreeze = "";
     }
   } else if (gameState === "playing") {
     handleGamepadInput();
-    handlePlayerFiring(); // Handle auto-fire logic
+    handlePlayerFiring();
     enemyShoot();
     spawnFallingObject();
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
     drawStars(context);
-
     updatePlayer();
     drawPlayer();
     drawBarriers(context);
-
     updateAndDrawBullets();
     updateAndDrawEnemyBullets(context);
     updateAndDrawEnemies();
     updateAndDrawParticles(context);
     updateAndDrawFallingObjects(context);
-
     checkGameConditions();
     drawScore(context);
     drawPowerupMessage(context);
-
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
     }
-
   } else if (gameState === "gameOver") {
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
     drawStars(context);
-    // Now draw the semi-transparent overlay for the game over specific messages
     context.fillStyle = 'rgba(0, 0, 0, 0.75)';
     context.fillRect(0, 0, canvas.width, canvas.height);
-
     drawScore(context);
-
     context.font = '48px Arial';
     context.fillStyle = gameWon ? 'gold' : 'red';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     const message = gameWon ? 'You Win!' : 'Game Over!';
     context.fillText(message, canvas.width / 2, canvas.height / 2);
-
-    // Define and draw Continue button
     const continueButtonGameOver = {
-        x: canvas.width / 2 - (340 / 2), // Centered
-        y: canvas.height / 2 + 40, // Below "Game Over" text slightly adjusted
+        x: canvas.width / 2 - (340 / 2),
+        y: canvas.height / 2 + 40,
         width: 340,
-        height: 40, // Specific height for this button
+        height: 40,
         label: "Continue (Level " + currentLevel + ")"
     };
     drawButton(continueButtonGameOver);
-
-    // Define and draw Return to Menu button (adjust Y to be below Continue)
-    gameOverToTitleButton = { // Update global object for hit detection
-        x: canvas.width / 2 - (280 / 2), // Centered
-        y: canvas.height / 2 + 40 + continueButtonGameOver.height + 10, // Below continue button
-        width: 280, // Same width as continue for alignment
-        height: 40, // Specific height
+    gameOverToTitleButton = {
+        x: canvas.width / 2 - (280 / 2),
+        y: canvas.height / 2 + 40 + continueButtonGameOver.height + 10,
+        width: 280,
+        height: 40,
         label: "Return to Menu"
     };
     drawButton(gameOverToTitleButton);
-
     context.textAlign = "left";
   }
-
   requestAnimationFrame(gameLoop);
 }
 
-initializeStars(); // Call once before game starts
+initializeStars();
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
