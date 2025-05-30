@@ -40,14 +40,14 @@ const PARTICLE_MIN_SPEED = 1; // Min initial speed
 // Falling Objects
 let fallingObjects = [];
 const FALLING_OBJECT_BASE_VY_BOMB = 1.5;
-const BOMB_WIDTH = 15;
-const BOMB_HEIGHT = 15;
-const BOMB_COLOR = '#333333'; // Dark Gray
+const BOMB_WIDTH = 18;
+const BOMB_HEIGHT = 18;
+const BOMB_COLOR = '#888888'; // Medium Gray
 
 const POWERUP_GENERIC_WIDTH = 20; // Can be reused for shield
 const POWERUP_GENERIC_HEIGHT = 20; // Can be reused for shield
 const POWERUP_GENERIC_COLOR = '#4A90E2'; // A distinct blue
-const FALLING_OBJECT_BASE_VY_POWERUP = 1.0; // Powerups fall slightly slower
+const FALLING_OBJECT_BASE_VY_POWERUP = 0.75; // Powerups fall slightly slower
 
 const POWERUP_SHIELD_WIDTH = 20;
 const POWERUP_SHIELD_HEIGHT = 20;
@@ -675,16 +675,25 @@ function updateAndDrawFallingObjects(ctx) {
                 ctx.fillRect(currentX, startY, iconWidth, iconHeight);
             }
         } else if (obj.type === "powerup_dualbarrel") {
-            const centerX = obj.x + obj.width / 2;
-            const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2;
+            ctx.fillStyle = obj.color; // POWERUP_DUALBARREL_COLOR (Bright Green)
 
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
-            ctx.fillStyle = obj.color; // Should be POWERUP_DUALBARREL_COLOR (Green)
-            ctx.fill();
-            ctx.closePath();
-        } else if (obj.type === "powerup_explosive") { // <<< ADD THIS BLOCK
+            const barrelCount = 2;
+            const barrelIconWidth = obj.width / 4; // e.g., 5px for a 20px obj.width
+            const barrelIconHeight = obj.height * 0.7; // e.g., 14px, making them taller than wide
+
+            // Spacing between the two barrels
+            const spacingBetweenBarrels = obj.width / 8; // e.g., 2.5px
+
+            const totalGroupWidth = (barrelCount * barrelIconWidth) + ((barrelCount - 1) * spacingBetweenBarrels);
+
+            const startXOverall = obj.x + (obj.width - totalGroupWidth) / 2; // Initial X to center the group
+            const startY = obj.y + (obj.height - barrelIconHeight) / 2;    // Y to center icons vertically
+
+            for (let i = 0; i < barrelCount; i++) {
+                const currentX = startXOverall + i * (barrelIconWidth + spacingBetweenBarrels);
+                ctx.fillRect(currentX, startY, barrelIconWidth, barrelIconHeight);
+            }
+        } else if (obj.type === "powerup_explosive") {
             const centerX = obj.x + obj.width / 2;
             const centerY = obj.y + obj.height / 2;
             const radius = obj.width / 2;
@@ -1695,3 +1704,51 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
