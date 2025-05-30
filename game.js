@@ -15,6 +15,10 @@ const INVINCIBILITY_DURATION_FRAMES = 300; // Approx 5 seconds at 60FPS
 const AUTOFIRE_DURATION_FRAMES = 300; // Approx 5 seconds at 60FPS
 const AUTOFIRE_COOLDOWN_FRAMES = 5;  // Cooldown between auto-fired shots (e.g., 12 shots/sec)
 const DUALBARREL_DURATION_FRAMES = 480; // Approx 8 seconds at 60FPS
+const EXPLOSIVE_BULLETS_DURATION_FRAMES = 420; // Approx 7 seconds at 60FPS
+const EXPLOSION_RADIUS = 30; // Radius for AoE damage from explosive bullets
+const BULLET_EXPLOSION_PARTICLE_COUNT = 15; // Number of particles for a bullet's explosion
+const BULLET_EXPLOSION_COLOR = 'orange';   // Color of a bullet's own explosion particles
 
 // UI Message
 let powerupMessage = "";
@@ -54,6 +58,10 @@ const POWERUP_DUALBARREL_WIDTH = 20;
 const POWERUP_DUALBARREL_HEIGHT = 20;
 const POWERUP_DUALBARREL_COLOR = '#00FF00'; // Bright Green
 
+const POWERUP_EXPLOSIVE_WIDTH = 20;
+const POWERUP_EXPLOSIVE_HEIGHT = 20;
+const POWERUP_EXPLOSIVE_COLOR = '#FF4500'; // OrangeRed
+
 // Player properties
 const player = {
   width: 50,
@@ -78,7 +86,9 @@ const player = {
   isTryingToFireTouch: false,
   isTryingToFireGamepad: false,
   hasDualBarrel: false,
-  dualBarrelTimer: 0
+  dualBarrelTimer: 0,
+  hasExplosiveBullets: false,
+  explosiveBulletsTimer: 0
 };
 
 // Enemy Configuration
@@ -393,10 +403,10 @@ function enemyShoot() {
   }
 }
 
-function createExplosion(centerX, centerY, baseColor) {
-    for (let i = 0; i < PARTICLES_PER_EXPLOSION; i++) {
+function createExplosion(centerX, centerY, baseColor, numParticles = PARTICLES_PER_EXPLOSION, particleSpeedMultiplier = 1) {
+    for (let i = 0; i < numParticles; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * (PARTICLE_MAX_SPEED - PARTICLE_MIN_SPEED) + PARTICLE_MIN_SPEED;
+        const speed = (Math.random() * (PARTICLE_MAX_SPEED - PARTICLE_MIN_SPEED) + PARTICLE_MIN_SPEED) * particleSpeedMultiplier;
         const lifespan = Math.random() * PARTICLE_MAX_LIFESPAN_RANDOM + PARTICLE_MAX_LIFESPAN_BASE;
 
         particles.push({
@@ -433,7 +443,7 @@ function spawnFallingObject() {
                 type: "bomb"
             };
         } else {
-            const availablePowerupTypes = ["powerup_shield", "powerup_autofire", "powerup_dualbarrel"];
+            const availablePowerupTypes = ["powerup_shield", "powerup_autofire", "powerup_dualbarrel", "powerup_explosive"];
             const randomIndex = Math.floor(Math.random() * availablePowerupTypes.length);
             const selectedPowerupType = availablePowerupTypes[randomIndex];
 
@@ -460,6 +470,14 @@ function spawnFallingObject() {
                     height: POWERUP_DUALBARREL_HEIGHT,
                     color: POWERUP_DUALBARREL_COLOR,
                     type: "powerup_dualbarrel"
+                };
+            } else if (selectedPowerupType === "powerup_explosive") {
+                newObjectProps = {
+                    vy: FALLING_OBJECT_BASE_VY_POWERUP,
+                    width: POWERUP_EXPLOSIVE_WIDTH,
+                    height: POWERUP_EXPLOSIVE_HEIGHT,
+                    color: POWERUP_EXPLOSIVE_COLOR,
+                    type: "powerup_explosive"
                 };
             }
         }
@@ -636,6 +654,16 @@ function updateAndDrawFallingObjects(ctx) {
             ctx.fillStyle = obj.color; // Should be POWERUP_DUALBARREL_COLOR (Green)
             ctx.fill();
             ctx.closePath();
+        } else if (obj.type === "powerup_explosive") { // <<< ADD THIS BLOCK
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2; 
+    
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = obj.color; // Should be POWERUP_EXPLOSIVE_COLOR
+            ctx.fill();
+            ctx.closePath();
         } else {
             // Default drawing for any other future types
             ctx.fillStyle = obj.color;
@@ -726,6 +754,25 @@ function updateAndDrawFallingObjects(ctx) {
                 fallingObjects.splice(i, 1); // Remove the power-up
                 continue; // Skip to the next falling object
             }
+        } else if (obj.type === "powerup_explosive") {
+            // AABB collision check with player (copy from other powerup types)
+            const playerVisualTopY = player.y - player.height - player.barrelHeight;
+            const playerVisualBottomY = player.y;
+    
+            if (obj.x < player.x + player.width &&
+                obj.x + obj.width > player.x &&
+                obj.y < playerVisualBottomY &&
+                obj.y + obj.height > playerVisualTopY) {
+                
+                player.hasExplosiveBullets = true;
+                player.explosiveBulletsTimer = EXPLOSIVE_BULLETS_DURATION_FRAMES;
+    
+                powerupMessage = "Explosive Bullets!"; 
+                powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
+                
+                fallingObjects.splice(i, 1); // Remove the power-up
+                continue; // Skip to the next falling object
+            }
         }
 
         // Off-Screen Removal (if not already removed by collision)
@@ -757,6 +804,8 @@ function resetPlayerPosition() {
   player.isTryingToFireGamepad = false;
   player.hasDualBarrel = false;
   player.dualBarrelTimer = 0;
+  player.hasExplosiveBullets = false;
+  player.explosiveBulletsTimer = 0;
 }
 
 
@@ -1165,6 +1214,12 @@ function updatePlayer() {
           player.hasDualBarrel = false;
       }
   }
+  if (player.hasExplosiveBullets) {
+      player.explosiveBulletsTimer--;
+      if (player.explosiveBulletsTimer <= 0) {
+          player.hasExplosiveBullets = false;
+      }
+  }
   if (player.isMovingLeftKeyboard || player.isMovingLeftTouch || player.isMovingLeftGamepad) player.x -= player.speed;
   if (player.isMovingRightKeyboard || player.isMovingRightTouch || player.isMovingRightGamepad) player.x += player.speed;
 
@@ -1226,17 +1281,49 @@ function updateAndDrawBullets() {
           bullet.y < enemy.y + enemy.height &&
           bullet.y + bullet.height > enemy.y) {
         
-        enemy.alive = false; // Mark enemy as dead
-        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color);
-        
-        score += 10; 
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('spaceInvadersHighScore', highScore.toString());
-        }
-        bullets.splice(i, 1);
-        bulletRemovedThisFrame = true;
-        break; 
+            const impactX = bullet.x + bullet.width / 2;
+            const impactY = bullet.y; 
+
+            enemy.alive = false;
+            score += 10; 
+            createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color); // Standard enemy death
+
+            if (player.hasExplosiveBullets) {
+                // Create the bullet's own explosion effect
+                createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 0.75); 
+
+                // AoE damage to other enemies
+                enemies.forEach(otherEnemy => {
+                    if (otherEnemy.alive && otherEnemy !== enemy) { 
+                        const dist = Math.sqrt(
+                            Math.pow(otherEnemy.x + otherEnemy.width / 2 - impactX, 2) +
+                            Math.pow(otherEnemy.y + otherEnemy.height / 2 - impactY, 2)
+                        );
+                        if (dist < EXPLOSION_RADIUS) {
+                            otherEnemy.alive = false;
+                            score += 10; // Score for AoE kill
+                            createExplosion(otherEnemy.x + otherEnemy.width / 2, otherEnemy.y + otherEnemy.height / 2, otherEnemy.color);
+                        }
+                    }
+                });
+                // AoE damage to barriers
+                barriers.forEach(barrier => {
+                    barrier.blocks.forEach(b => { 
+                        if (b.alive) {
+                            const dist = Math.sqrt(
+                                Math.pow(b.x + b.width / 2 - impactX, 2) +
+                                Math.pow(b.y + b.height / 2 - impactY, 2)
+                            );
+                            if (dist < EXPLOSION_RADIUS) {
+                                b.alive = false;
+                            }
+                        }
+                    });
+                });
+            }
+            bullets.splice(i, 1);
+            bulletRemovedThisFrame = true;
+            break; 
       }
     }
 
@@ -1253,7 +1340,44 @@ function updateAndDrawBullets() {
               bullet.x + bullet.width > block.x &&
               bullet.y < block.y + block.height &&
               bullet.y + bullet.height > block.y) {
-            block.alive = false;
+            
+            const impactX = bullet.x + bullet.width / 2;
+            const impactY = bullet.y; 
+
+            block.alive = false; // Direct hit block
+
+            if (player.hasExplosiveBullets) {
+                createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 0.75);
+
+                // AoE damage to OTHER barrier blocks (not the one directly hit)
+                barriers.forEach(barrier => {
+                    barrier.blocks.forEach(otherBlock => {
+                        if (otherBlock.alive && otherBlock !== block) {
+                            const dist = Math.sqrt(
+                                Math.pow(otherBlock.x + otherBlock.width / 2 - impactX, 2) +
+                                Math.pow(otherBlock.y + otherBlock.height / 2 - impactY, 2)
+                            );
+                            if (dist < EXPLOSION_RADIUS) {
+                                otherBlock.alive = false;
+                            }
+                        }
+                    });
+                });
+                // AoE damage to enemies from barrier hit
+                enemies.forEach(e => { 
+                    if (e.alive) {
+                        const dist = Math.sqrt(
+                            Math.pow(e.x + e.width / 2 - impactX, 2) +
+                            Math.pow(e.y + e.height / 2 - impactY, 2)
+                        );
+                        if (dist < EXPLOSION_RADIUS) {
+                            e.alive = false;
+                            score += 10;
+                            createExplosion(e.x + e.width / 2, e.y + e.height / 2, e.color);
+                        }
+                    }
+                });
+            }
             bullets.splice(i, 1);
             bulletRemovedThisFrame = true; 
             break; 
@@ -1541,3 +1665,51 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
