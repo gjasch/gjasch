@@ -12,6 +12,8 @@ let currentLevel = 1;
 let stars = [];
 const NUM_STARS = 100; // Adjust for desired density
 const INVINCIBILITY_DURATION_FRAMES = 300; // Approx 5 seconds at 60FPS
+const AUTOFIRE_DURATION_FRAMES = 300; // Approx 5 seconds at 60FPS
+const AUTOFIRE_COOLDOWN_FRAMES = 5;  // Cooldown between auto-fired shots (e.g., 12 shots/sec)
 
 // UI Message
 let powerupMessage = "";
@@ -43,6 +45,10 @@ const POWERUP_SHIELD_HEIGHT = 20;
 const POWERUP_SHIELD_COLOR = '#00FFFF'; // Cyan
 const FALLING_OBJECT_GRAVITY = 0.04;
 
+const POWERUP_AUTOFIRE_WIDTH = 20;
+const POWERUP_AUTOFIRE_HEIGHT = 20;
+const POWERUP_AUTOFIRE_COLOR = '#FFA500'; // Orange
+
 // Player properties
 const player = {
   width: 50,
@@ -59,7 +65,13 @@ const player = {
   x: 0,
   y: 0, // Represents the BOTTOM-MOST part of the cannon graphic
   isInvincible: false,
-  invincibilityTimer: 0
+  invincibilityTimer: 0,
+  hasAutoFire: false,
+  autoFireTimer: 0,
+  autoFireNextShotTimer: 0,
+  isTryingToFireKeyboard: false,
+  isTryingToFireTouch: false,
+  isTryingToFireGamepad: false
 };
 
 // Enemy Configuration
@@ -385,14 +397,14 @@ function spawnFallingObject() {
                 color: BOMB_COLOR,
                 type: "bomb" 
             };
-        } else { // 30% chance, now specifically for shield power-up
-            objectType = "powerup_shield"; 
+        } else { // This block previously spawned "powerup_shield"
+            // objectType = "powerup_autofire"; // Local var not strictly needed if props.type is set
             newObjectProps = {
                 vy: FALLING_OBJECT_BASE_VY_POWERUP, 
-                width: POWERUP_SHIELD_WIDTH,    
-                height: POWERUP_SHIELD_HEIGHT,  
-                color: POWERUP_SHIELD_COLOR,    
-                type: "powerup_shield"         
+                width: POWERUP_AUTOFIRE_WIDTH,
+                height: POWERUP_AUTOFIRE_HEIGHT,
+                color: POWERUP_AUTOFIRE_COLOR, // Use the new Orange color
+                type: "powerup_autofire"       // Set type to "powerup_autofire"
             };
         }
         
@@ -548,6 +560,16 @@ function updateAndDrawFallingObjects(ctx) {
             ctx.fillStyle = obj.color; // Should be POWERUP_SHIELD_COLOR (Cyan)
             ctx.fill();
             ctx.closePath();
+        } else if (obj.type === "powerup_autofire") { // <<< ADD THIS BLOCK
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2; 
+    
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = obj.color; // Should be POWERUP_AUTOFIRE_COLOR (Orange)
+            ctx.fill();
+            ctx.closePath();
         } else {
             // Default drawing for any other future types
             ctx.fillStyle = obj.color;
@@ -599,6 +621,26 @@ function updateAndDrawFallingObjects(ctx) {
                 fallingObjects.splice(i, 1); 
                 continue; 
             }
+        } else if (obj.type === "powerup_autofire") {
+            // AABB collision check with player (copy from powerup_shield)
+            const playerVisualTopY = player.y - player.height - player.barrelHeight;
+            const playerVisualBottomY = player.y;
+    
+            if (obj.x < player.x + player.width &&
+                obj.x + obj.width > player.x &&
+                obj.y < playerVisualBottomY &&
+                obj.y + obj.height > playerVisualTopY) {
+                
+                player.hasAutoFire = true;
+                player.autoFireTimer = AUTOFIRE_DURATION_FRAMES;
+                player.autoFireNextShotTimer = 0; // Allow immediate first shot if fire is held
+    
+                powerupMessage = "Auto Fire On!"; // Or "Rapid Fire!"
+                powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
+                
+                fallingObjects.splice(i, 1); // Remove the power-up
+                continue; // Skip to the next falling object
+            }
         }
 
         // Off-Screen Removal (if not already removed by collision)
@@ -622,6 +664,12 @@ function resetPlayerPosition() {
     player.isMovingLeftGamepad = false; player.isMovingRightGamepad = false;
     player.isInvincible = false;
     player.invincibilityTimer = 0;
+    player.hasAutoFire = false;
+    player.autoFireTimer = 0;
+    player.autoFireNextShotTimer = 0;
+  player.isTryingToFireKeyboard = false;
+  player.isTryingToFireTouch = false;
+  player.isTryingToFireGamepad = false;
 }
 
 
@@ -814,10 +862,26 @@ function handleGamepadInput() {
 
       const fireButtonIndex = 0; 
       if (gp.buttons[fireButtonIndex] && gp.buttons[fireButtonIndex].pressed) {
-        playerShoot(); 
+        if (!player.isTryingToFireGamepad && !player.hasAutoFire) { // First press and not autofire
+            playerShoot();
+        }
+        player.isTryingToFireGamepad = true;
+      } else {
+        player.isTryingToFireGamepad = false; // Button is not pressed
       }
     }
   }
+}
+
+function handlePlayerFiring() { // Call this from gameLoop "playing" state, or from updatePlayer
+    if (!player.hasAutoFire) return; // Only applies to auto-fire mode
+
+    const isFireInputActive = player.isTryingToFireKeyboard || player.isTryingToFireTouch || player.isTryingToFireGamepad;
+
+    if (isFireInputActive && player.autoFireNextShotTimer <= 0) {
+        playerShoot();
+        player.autoFireNextShotTimer = AUTOFIRE_COOLDOWN_FRAMES;
+    }
 }
 
 // Event Listeners
@@ -828,7 +892,10 @@ document.addEventListener('keydown', function(event) {
     } else if (event.key === 'ArrowRight') {
       player.isMovingRightKeyboard = true;
     } else if (event.code === 'Space') {
-      playerShoot();
+      if (!player.isTryingToFireKeyboard && !player.hasAutoFire) { // First press and not autofire
+          playerShoot();
+      }
+      player.isTryingToFireKeyboard = true; // Set flag regardless
     }
   }
 });
@@ -839,6 +906,8 @@ document.addEventListener('keyup', function(event) {
     player.isMovingLeftKeyboard = false;
   } else if (event.key === 'ArrowRight') {
     player.isMovingRightKeyboard = false;
+  } else if (event.code === 'Space') { 
+      player.isTryingToFireKeyboard = false;
   }
 });
 
@@ -927,7 +996,10 @@ canvas.addEventListener('touchstart', function(e) {
         actionTaken = true;
       }
       if (isInside(touchPos, osFireButton)) {
-        playerShoot();
+        if (!player.isTryingToFireTouch && !player.hasAutoFire) { // First press and not autofire
+            playerShoot();
+        }
+        player.isTryingToFireTouch = true; // Set flag regardless
         actionTaken = true;
       }
     }
@@ -944,6 +1016,12 @@ canvas.addEventListener('touchend', function(e) {
       const touch = e.changedTouches[i];
       const touchPos = getMousePos(canvas, touch); 
       
+      // Check if the touch that ended was on the fire button
+      if (isInside(touchPos, osFireButton)) {
+          player.isTryingToFireTouch = false;
+          // actionTaken = true; // Not strictly needed to set actionTaken here unless other logic depends on it
+      }
+
       if (player.isMovingLeftTouch && !isInside(touchPos, osRightButton)) {
         let leftStillPressed = false;
         for (let j = 0; j < e.touches.length; j++) { 
@@ -982,6 +1060,17 @@ function updatePlayer() {
         player.isInvincible = false;
         // No need to reset timer to 0 here, it's done or implicitly handled
     }
+  }
+  // After invincibility logic in updatePlayer():
+  if (player.hasAutoFire) {
+      player.autoFireTimer--;
+      if (player.autoFireTimer <= 0) {
+          player.hasAutoFire = false;
+          // No need to reset autoFireNextShotTimer here, it just won't be used.
+      }
+  }
+  if (player.autoFireNextShotTimer > 0) {
+      player.autoFireNextShotTimer--;
   }
   if (player.isMovingLeftKeyboard || player.isMovingLeftTouch || player.isMovingLeftGamepad) player.x -= player.speed;
   if (player.isMovingRightKeyboard || player.isMovingRightTouch || player.isMovingRightGamepad) player.x += player.speed;
@@ -1289,6 +1378,7 @@ function gameLoop() {
     }
   } else if (gameState === "playing") {
     handleGamepadInput(); 
+    handlePlayerFiring(); // Handle auto-fire logic
     enemyShoot(); 
     spawnFallingObject();
     context.fillStyle = 'black';
