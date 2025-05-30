@@ -22,12 +22,21 @@ const STATE_PLAYING = 'playing';
 const STATE_GAME_OVER = 'game_over';
 
 // Button area for Title Screen
-const startGameButton = {
-    x: CANVAS_WIDTH / 2 - 100, // Centered
-    y: CANVAS_HEIGHT / 2 + 50, // Below title
-    width: 200,
+// const startGameButton = { ... }; // REMOVED/COMMENTED
+const onePlayerStartButton = {
+    x: CANVAS_WIDTH / 2 - 150, // Adjust X to be on one side
+    y: CANVAS_HEIGHT / 2 + 50,
+    width: 140, // Slightly smaller buttons if needed
     height: 50,
-    text: "Start Game"
+    text: "1 Player"
+};
+
+const twoPlayerStartButton = {
+    x: CANVAS_WIDTH / 2 + 10,  // Adjust X to be on the other side
+    y: CANVAS_HEIGHT / 2 + 50,
+    width: 140,
+    height: 50,
+    text: "2 Players"
 };
 
 const rematchButton = {
@@ -97,6 +106,7 @@ let player2Score = 0;
 const WINNING_SCORE = 5; // Or any score you prefer
 let winnerMessage = ""; // Keep for game over message
 let currentGameState = STATE_TITLE_SCREEN;
+let gameMode = 'two_player'; // Default or set to null until chosen
 // let gameStarted = false; // REMOVED
 // let gameOver = false; // REMOVED
 
@@ -131,11 +141,13 @@ document.addEventListener('keydown', function(event) {
         player1Paddle.dy = PADDLE_SPEED;
     }
 
-    // Player 2 (Right Paddle) - ArrowUp and ArrowDown keys
-    if (event.key === 'ArrowUp') {
-        player2Paddle.dy = -PADDLE_SPEED;
-    } else if (event.key === 'ArrowDown') {
-        player2Paddle.dy = PADDLE_SPEED;
+    // Player 2 (Right Paddle) - ArrowUp and ArrowDown keys - ONLY if two_player mode
+    if (gameMode === 'two_player') {
+        if (event.key === 'ArrowUp') {
+            player2Paddle.dy = -PADDLE_SPEED;
+        } else if (event.key === 'ArrowDown') {
+            player2Paddle.dy = PADDLE_SPEED;
+        }
     }
 
     // Start game on Spacebar press - REMOVED, will be handled by title screen UI
@@ -150,16 +162,18 @@ document.addEventListener('keyup', function(event) {
         player1Paddle.dy = 0;
     }
 
-    // Player 2 - Stop movement when key is released
-    if (event.key === 'ArrowUp' && player2Paddle.dy < 0) {
-        player2Paddle.dy = 0;
-    } else if ((event.key === 'ArrowDown' && player2Paddle.dy > 0)) { // Corrected parenthesis
-        player2Paddle.dy = 0;
+    // Player 2 - Stop movement when key is released - ONLY if two_player mode
+    if (gameMode === 'two_player') {
+        if (event.key === 'ArrowUp' && player2Paddle.dy < 0) {
+            player2Paddle.dy = 0;
+        } else if ((event.key === 'ArrowDown' && player2Paddle.dy > 0)) { // Corrected parenthesis
+            player2Paddle.dy = 0;
+        }
     }
 });
 
 function updatePaddles() {
-    // Move player 1 paddle
+    // Move player 1 paddle (always controlled by player)
     player1Paddle.y += player1Paddle.dy;
     // Keep player 1 paddle within canvas bounds
     if (player1Paddle.y < 0) {
@@ -168,9 +182,34 @@ function updatePaddles() {
         player1Paddle.y = CANVAS_HEIGHT - player1Paddle.height;
     }
 
-    // Move player 2 paddle
-    player2Paddle.y += player2Paddle.dy;
-    // Keep player 2 paddle within canvas bounds
+    // Player 2 paddle movement
+    if (gameMode === 'one_player' && currentGameState === STATE_PLAYING) {
+        // AI controls Player 2 paddle
+        const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
+        const distanceToBall = ball.y - paddleCenterY;
+
+        // Adjust this multiplier for AI difficulty (0.1 is a common starting point)
+        // A higher value makes the AI faster/more responsive.
+        const aiSpeedFactor = 0.08; // Reduced for potentially more human-like speed
+
+        let targetDy = distanceToBall * aiSpeedFactor;
+
+        // Optional: Cap AI speed to prevent it from being too fast
+        const maxAiSpeed = PADDLE_SPEED * 0.75; // AI can move at 75% of player's max speed
+        if (Math.abs(targetDy) > maxAiSpeed) {
+            targetDy = Math.sign(targetDy) * maxAiSpeed;
+        }
+
+        player2Paddle.y += targetDy;
+
+    } else if (gameMode === 'two_player') {
+        // Player 2 paddle is controlled by keyboard (dy is set by event listeners)
+        player2Paddle.y += player2Paddle.dy;
+    }
+    // Else (e.g. if gameMode is null or other states like countdown/game_over for P2)
+    // P2 paddle dy is likely 0 or not updated by keys, so it remains static unless AI moves it.
+
+    // Keep player 2 paddle within canvas bounds (common for both AI and human player)
     if (player2Paddle.y < 0) {
         player2Paddle.y = 0;
     } else if (player2Paddle.y + player2Paddle.height > CANVAS_HEIGHT) {
@@ -264,12 +303,19 @@ function gameLoop() {
             let textWidth = context.measureText(titleText).width;
             context.fillText(titleText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2 - 50);
 
-            // Draw Start Game button
-            drawRect(startGameButton.x, startGameButton.y, startGameButton.width, startGameButton.height, COLOR_FOREGROUND); // Button background
-            context.fillStyle = COLOR_BACKGROUND; // Text color for button
-            context.font = '30px Arial';
-            textWidth = context.measureText(startGameButton.text).width;
-            context.fillText(startGameButton.text, startGameButton.x + (startGameButton.width - textWidth) / 2, startGameButton.y + startGameButton.height / 2 + 10); // Center text in button
+            // Draw 1 Player Start button
+            drawRect(onePlayerStartButton.x, onePlayerStartButton.y, onePlayerStartButton.width, onePlayerStartButton.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND;
+            context.font = '25px Arial'; // Adjust font size as needed
+            textWidth = context.measureText(onePlayerStartButton.text).width;
+            context.fillText(onePlayerStartButton.text, onePlayerStartButton.x + (onePlayerStartButton.width - textWidth) / 2, onePlayerStartButton.y + onePlayerStartButton.height / 2 + 8);
+
+            // Draw 2 Players Start button
+            drawRect(twoPlayerStartButton.x, twoPlayerStartButton.y, twoPlayerStartButton.width, twoPlayerStartButton.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND;
+            context.font = '25px Arial';
+            textWidth = context.measureText(twoPlayerStartButton.text).width;
+            context.fillText(twoPlayerStartButton.text, twoPlayerStartButton.x + (twoPlayerStartButton.width - textWidth) / 2, twoPlayerStartButton.y + twoPlayerStartButton.height / 2 + 8);
             break;
 
         case STATE_COUNTDOWN:
@@ -368,24 +414,33 @@ canvas.addEventListener('mousedown', function(event) {
         const clickX = event.clientX - rect.left;
         const clickY = event.clientY - rect.top;
 
-        // Check if click is within the Start Game button
-        if (clickX >= startGameButton.x && clickX <= startGameButton.x + startGameButton.width &&
-            clickY >= startGameButton.y && clickY <= startGameButton.y + startGameButton.height) {
-
-            // Reset scores and other relevant game variables for a new game
+        // Common reset logic function
+        function initializeNewGame() {
             player1Score = 0;
             player2Score = 0;
-            winnerMessage = ""; // Clear any previous winner message
-
-            // Ensure ball is reset for the start of the game (static until countdown)
+            winnerMessage = "";
             ball.x = CANVAS_WIDTH / 2;
             ball.y = CANVAS_HEIGHT / 2;
             ball.dx = 0;
             ball.dy = 0;
-
-            countdownValue = 3; // Initialize countdown
-            lastCountdownTime = Date.now(); // Set start time for countdown
+            countdownValue = 3;
+            lastCountdownTime = Date.now();
             currentGameState = STATE_COUNTDOWN;
+        }
+
+        // Check 1 Player Start button
+        if (clickX >= onePlayerStartButton.x && clickX <= onePlayerStartButton.x + onePlayerStartButton.width &&
+            clickY >= onePlayerStartButton.y && clickY <= onePlayerStartButton.y + onePlayerStartButton.height) {
+
+            gameMode = 'one_player';
+            initializeNewGame();
+        }
+        // Check 2 Players Start button
+        else if (clickX >= twoPlayerStartButton.x && clickX <= twoPlayerStartButton.x + twoPlayerStartButton.width &&
+                 clickY >= twoPlayerStartButton.y && clickY <= twoPlayerStartButton.y + twoPlayerStartButton.height) {
+
+            gameMode = 'two_player';
+            initializeNewGame();
         }
     }
     else if (currentGameState === STATE_GAME_OVER) {
