@@ -20,6 +20,13 @@ const PARTICLE_MAX_LIFESPAN_RANDOM = 30; // Additional random lifespan frames
 const PARTICLE_MAX_SPEED = 3; // Max initial speed of particles
 const PARTICLE_MIN_SPEED = 1; // Min initial speed
 
+// Falling Objects
+let fallingObjects = [];
+const FALLING_OBJECT_BASE_VY_BOMB = 3;
+const BOMB_WIDTH = 15;
+const BOMB_HEIGHT = 15;
+const BOMB_COLOR = '#800000'; // Maroon
+
 // Player properties
 const player = {
   width: 50,
@@ -340,6 +347,40 @@ function createExplosion(centerX, centerY, baseColor) {
     }
 }
 
+function spawnFallingObject() {
+    const baseSpawnChance = 0.001 + (currentLevel - 1) * 0.0005;
+    const effectiveSpawnChance = Math.min(baseSpawnChance, 0.02); // Cap at 2% per frame
+
+    // Reduce spawn chance significantly for testing, e.g., 0.01 for more frequent spawns
+    // const effectiveSpawnChance = Math.min(0.02 + (currentLevel - 1) * 0.001, 0.1); // Example for testing
+
+    if (Math.random() < effectiveSpawnChance) {
+        const objectType = "bomb"; // Only bombs for now
+
+        // TODO: Later, add logic to randomly select objectType (bomb or powerup)
+        
+        let newObjectProps = {
+            vy: FALLING_OBJECT_BASE_VY_BOMB,
+            width: BOMB_WIDTH,
+            height: BOMB_HEIGHT,
+            color: BOMB_COLOR
+        };
+
+        // Future: if (objectType === "powerup_shield") { /* assign powerup props */ }
+        
+        fallingObjects.push({
+            x: Math.random() * (canvas.width - newObjectProps.width),
+            y: 0 - newObjectProps.height, // Start just above screen
+            vx: 0,
+            vy: newObjectProps.vy,
+            width: newObjectProps.width,
+            height: newObjectProps.height,
+            type: objectType,
+            color: newObjectProps.color
+        });
+    }
+}
+
 function updateAndDrawParticles(ctx) { // Renamed context to ctx for consistency
     for (let i = particles.length - 1; i >= 0; i--) {
         const particle = particles[i];
@@ -369,6 +410,84 @@ function updateAndDrawParticles(ctx) { // Renamed context to ctx for consistency
         ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
     }
     ctx.globalAlpha = 1.0; // Reset global alpha after drawing all particles
+}
+
+function updateAndDrawFallingObjects(ctx) {
+    for (let i = fallingObjects.length - 1; i >= 0; i--) {
+        const obj = fallingObjects[i];
+
+        obj.y += obj.vy;
+        obj.x += obj.vx; // For bouncing later
+
+        // Barrier Collision Logic
+        let objectHitBarrierThisFrame = false; 
+        for (let b = 0; b < barriers.length; b++) {
+            const barrier = barriers[b];
+            for (let k = 0; k < barrier.blocks.length; k++) {
+                const block = barrier.blocks[k];
+                if (block.alive) {
+                    // AABB collision check between obj and block
+                    if (obj.x < block.x + block.width &&
+                        obj.x + obj.width > block.x &&
+                        obj.y < block.y + block.height &&
+                        obj.y + obj.height > block.y) {
+                        
+                        // Simple bounce effect
+                        obj.vy *= -0.7; // Invert and dampen vertical velocity
+
+                        // Give a slight horizontal nudge
+                        obj.vx = (Math.random() - 0.5) * 4; // Random speed between -2 and 2
+
+                        // Adjust position slightly to prevent sticking
+                        obj.y += obj.vy; 
+                        obj.x += obj.vx;
+
+                        objectHitBarrierThisFrame = true;
+                        break; 
+                    }
+                }
+            }
+            if (objectHitBarrierThisFrame) {
+                break; 
+            }
+        }
+        // End Barrier Collision Logic
+
+        ctx.fillStyle = obj.color;
+        ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+
+        // Player Collision (Bomb specific)
+        if (obj.type === "bomb") {
+            const playerVisualTopY = player.y - player.height - player.barrelHeight;
+            const playerVisualBottomY = player.y; // player.y is the bottom of the base
+
+            if (obj.x < player.x + player.width &&
+                obj.x + obj.width > player.x &&
+                obj.y < playerVisualBottomY && // Bomb's top edge vs player's bottom
+                obj.y + obj.height > playerVisualTopY) { // Bomb's bottom edge vs player's top
+
+                const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
+                createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
+                
+                gameState = "freezeFrame";
+                freezeFrameUntil = Date.now() + 1000;
+                nextStateAfterFreeze = "gameOver";
+                gameWon = false;
+                
+                fallingObjects.splice(i, 1); // Remove this bomb
+                // Since game state is changing, exiting early from this function or loop might be good
+                // For now, splice and the outer loop structure handles it.
+                // If multiple bombs could hit in one frame, this might need adjustment.
+                // However, freezeFrame will stop further updates this frame.
+                continue; // Skip off-screen check for this bomb as game is ending
+            }
+        }
+
+        // Off-Screen Removal (if not already removed by collision)
+        if (obj.y > canvas.height) {
+            fallingObjects.splice(i, 1);
+        }
+    }
 }
 
 function resetPlayerPosition() {
@@ -401,6 +520,7 @@ function startGame(isContinuing = false) {
   enemyBullets = []; 
   bullets = []; 
   particles = []; // Clear existing particles
+  fallingObjects = []; // Clear falling objects
   gameWon = false; 
   // gameState = "playing"; // This will be set by the caller
 }
@@ -655,6 +775,7 @@ canvas.addEventListener('click', function(event) {
         bullets = [];           // Clear player bullets
         enemyBullets = [];      // Clear enemy bullets
         particles = []; // Clear existing particles from previous level
+        fallingObjects = []; // Clear falling objects
         gameState = "playing";  // Transition to playing state
     }
   }
@@ -999,6 +1120,7 @@ function gameLoop() {
   } else if (gameState === "playing") {
     handleGamepadInput(); 
     enemyShoot(); 
+    spawnFallingObject();
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
     drawStars(context);
@@ -1011,6 +1133,7 @@ function gameLoop() {
     updateAndDrawEnemyBullets(context); 
     updateAndDrawEnemies();
     updateAndDrawParticles(context);
+    updateAndDrawFallingObjects(context);
     
     checkGameConditions(); 
     drawScore(context); 
@@ -1065,3 +1188,48 @@ function gameLoop() {
 initializeStars(); // Call once before game starts
 gameLoop();
 
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
