@@ -55,17 +55,11 @@ const ball = {
     y: CANVAS_HEIGHT / 2,
     radius: BALL_RADIUS,
     speed: 5, // Magnitude of speed
-    dx: 5,    // Horizontal speed
-    dy: 5,    // Vertical speed
+    dx: 0,    // Horizontal speed - START STATIC
+    dy: 0,    // Vertical speed - START STATIC
     color: COLOR_FOREGROUND
 };
-// Randomize initial ball direction for the first serve
-if (Math.random() < 0.5) {
-    ball.dx = -ball.dx;
-}
-if (Math.random() < 0.5) {
-    ball.dy = -ball.dy;
-}
+// REMOVE the Math.random() lines that were here for dx/dy
 
 let player1Score = 0;
 let player2Score = 0;
@@ -73,6 +67,7 @@ let player2Score = 0;
 const WINNING_SCORE = 5; // Or any score you prefer
 let gameOver = false;
 let winnerMessage = "";
+let gameStarted = false;
 
 function resetBall() {
     ball.x = CANVAS_WIDTH / 2;
@@ -107,6 +102,28 @@ document.addEventListener('keydown', function(event) {
         player2Paddle.dy = -PADDLE_SPEED;
     } else if (event.key === 'ArrowDown') {
         player2Paddle.dy = PADDLE_SPEED;
+    }
+
+    // Start game on Spacebar press
+    if (event.key === ' ' || event.code === 'Space') { // Check for ' ' or 'Space' for wider compatibility
+        if (!gameStarted && !gameOver) {
+            gameStarted = true;
+            resetBall(); // Serve the ball
+        }
+        // Optional: If game is over, space could also restart the game (future enhancement)
+        // else if (gameOver) {
+        //    // Reset scores, gameOver flag, gameStarted flag, etc.
+        //    player1Score = 0;
+        //    player2Score = 0;
+        //    gameOver = false;
+        //    gameStarted = false; // So it shows "Press Space to Start" again
+        //    winnerMessage = "";
+        //    // Ball will be static due to gameStarted = false
+        //    ball.dx = 0; 
+        //    ball.dy = 0;
+        //    ball.x = CANVAS_WIDTH / 2;
+        //    ball.y = CANVAS_HEIGHT / 2;
+        // }
     }
 });
 
@@ -208,12 +225,12 @@ function updateBall() {
 
 function gameLoop() {
     // --- Update game state ---
-    if (!gameOver) {
+    if (gameStarted && !gameOver) { // Only update if game has started and is not over
         updatePaddles();
         updateBall();
     }
 
-    // --- Render/Draw game elements ---
+    // --- Render/Draw game elements (this part always runs) ---
     // Clear canvas
     drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BACKGROUND);
 
@@ -223,7 +240,7 @@ function gameLoop() {
     // Draw player 2 paddle
     drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
 
-    // Draw ball
+    // Draw ball (its position is only updated if gameStarted && !gameOver)
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
 
     // Display Scores
@@ -233,10 +250,17 @@ function gameLoop() {
     const player2ScoreText = player2Score.toString();
     context.fillText(player2ScoreText, CANVAS_WIDTH * 3 / 4 - 30, 50);
 
-    // Display Winner Message if Game Over
-    if (gameOver) {
+    // Display "Press Space to Start" or Winner Message
+    if (!gameStarted && !gameOver) {
+        context.fillStyle = COLOR_FOREGROUND; // Use the standard foreground color
+        context.font = '40px Arial';         // Choose a suitable font size
+        const message = "Press Space to Start";
+        // Measure text to center it
+        const textWidth = context.measureText(message).width;
+        context.fillText(message, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
+    } else if (gameOver) {
         context.fillStyle = COLOR_FOREGROUND;
-        context.font = '60px Arial';
+        context.font = '60px Arial'; // Larger font for winner message
         const textWidth = context.measureText(winnerMessage).width;
         context.fillText(winnerMessage, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
     }
