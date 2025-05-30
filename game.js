@@ -20,6 +20,10 @@ const EXPLOSION_RADIUS = 30; // Radius for AoE damage from explosive bullets
 const BULLET_EXPLOSION_PARTICLE_COUNT = 15; // Number of particles for a bullet's explosion
 const BULLET_EXPLOSION_COLOR = 'orange';   // Color of a bullet's own explosion particles
 
+const BOMB_BARRIER_EXPLOSION_PARTICLES = 20;
+const BOMB_BARRIER_EXPLOSION_COLOR = '#FFA500'; // Orange
+const BOMB_AOE_ON_BARRIER_RADIUS = 25;
+
 // UI Message
 let powerupMessage = "";
 let powerupMessageTimer = 0;
@@ -531,13 +535,14 @@ function updateAndDrawParticles(ctx) { // Renamed context to ctx for consistency
 function updateAndDrawFallingObjects(ctx) {
     for (let i = fallingObjects.length - 1; i >= 0; i--) {
         const obj = fallingObjects[i];
+        let objectRemovedThisFrame = false;
 
         obj.y += obj.vy;
         obj.x += obj.vx; // For bouncing later
         obj.vy += FALLING_OBJECT_GRAVITY; // Apply gravity
 
         // Barrier Collision Logic
-        let objectHitBarrierThisFrame = false;
+        let objectHitBarrierThisFrame = false; // Renamed from prompt's objectHitBarrierFlag for consistency
         for (let b = 0; b < barriers.length; b++) {
             const barrier = barriers[b];
             for (let k = 0; k < barrier.blocks.length; k++) {
@@ -549,42 +554,39 @@ function updateAndDrawFallingObjects(ctx) {
                         obj.y < block.y + block.height &&
                         obj.y + obj.height > block.y) {
 
-                        const objCenterX = obj.x + obj.width / 2;
-                        const objCenterY = obj.y + obj.height / 2;
-                        const blockCenterX = block.x + block.width / 2;
-                        const blockCenterY = block.y + block.height / 2;
+                        if (obj.type === "bomb") {
+                            const impactX = obj.x + obj.width / 2;
+                            const impactY = obj.y + obj.height / 2; // Center of bomb as impact
 
-                        const combinedHalfWidths = obj.width / 2 + block.width / 2;
-                        const combinedHalfHeights = obj.height / 2 + block.height / 2;
-                        const deltaX = objCenterX - blockCenterX;
-                        const deltaY = objCenterY - blockCenterY;
+                            // 1. Destroy the directly hit block
+                            block.alive = false;
 
-                        const overlapX = combinedHalfWidths - Math.abs(deltaX);
-                        const overlapY = combinedHalfHeights - Math.abs(deltaY);
+                            // 2. Create bomb-barrier explosion particles
+                            createExplosion(impactX, impactY, BOMB_BARRIER_EXPLOSION_COLOR, BOMB_BARRIER_EXPLOSION_PARTICLES, 0.8);
 
-                        const DAMPENING = 0.7;
-                        const FRICTION = 0.9;
+                            // 3. Apply AoE damage to other barrier blocks
+                            barriers.forEach(currentBarrierSearch => {
+                                currentBarrierSearch.blocks.forEach(otherBlockSearch => {
+                                    if (otherBlockSearch.alive && otherBlockSearch !== block) {
+                                        const dist = Math.sqrt(
+                                            Math.pow(otherBlockSearch.x + otherBlockSearch.width / 2 - impactX, 2) +
+                                            Math.pow(otherBlockSearch.y + otherBlockSearch.height / 2 - impactY, 2)
+                                        );
+                                        if (dist < BOMB_AOE_ON_BARRIER_RADIUS) {
+                                            otherBlockSearch.alive = false;
+                                        }
+                                    }
+                                });
+                            });
 
-                        if (overlapX >= overlapY) { // Collision is more horizontal
-                            obj.vx *= -DAMPENING;
-                            obj.vy *= FRICTION;
-                            // Nudge out based on which side the object hit from
-                            if (deltaX > 0) { // Object's center was to the right of block's center
-                                obj.x = block.x + block.width + 1; // Place obj to the right of block
-                            } else { // Object's center was to the left of block's center
-                                obj.x = block.x - obj.width - 1;   // Place obj to the left of block
-                            }
-                        } else { // Collision is more vertical
-                            obj.vy *= -DAMPENING;
-                            obj.vx *= FRICTION;
-                            // Nudge out based on which side the object hit from
-                            if (deltaY > 0) { // Object's center was below block's center
-                                obj.y = block.y + block.height + 1; // Place obj below the block
-                            } else { // Object's center was above block's center
-                                obj.y = block.y - obj.height - 1;   // Place obj above the block
-                            }
-                            // Add a very small random horizontal nudge on vertical bounce
-                            obj.vx += (Math.random() - 0.5) * 0.5;
+                            // 4. Remove the bomb itself
+                            fallingObjects.splice(i, 1);
+                            objectRemovedThisFrame = true;
+
+                        } else if (obj.type.startsWith("powerup_")) {
+                            fallingObjects.splice(i, 1); // Remove the power-up
+                            objectRemovedThisFrame = true; // Signal that the object was removed
+                            // objectHitBarrierThisFrame will be set true below, common for any hit
                         }
 
                         objectHitBarrierThisFrame = true;
@@ -597,6 +599,10 @@ function updateAndDrawFallingObjects(ctx) {
             }
         }
         // End Barrier Collision Logic
+
+        if (objectRemovedThisFrame) { // If bomb exploded and was removed by barrier collision
+            continue;
+        }
 
         if (obj.type === "bomb") {
             // Bomb Body (Circle)
