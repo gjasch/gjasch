@@ -449,16 +449,44 @@ function updateAndDrawFallingObjects(ctx) {
                         obj.y < block.y + block.height &&
                         obj.y + obj.height > block.y) {
                         
-                        // Simple bounce effect
-                        obj.vy *= -0.7; // Invert and dampen vertical velocity
+                        const objCenterX = obj.x + obj.width / 2;
+                        const objCenterY = obj.y + obj.height / 2;
+                        const blockCenterX = block.x + block.width / 2;
+                        const blockCenterY = block.y + block.height / 2;
 
-                        // Give a slight horizontal nudge
-                        obj.vx = (Math.random() - 0.5) * 4; // Random speed between -2 and 2
+                        const combinedHalfWidths = obj.width / 2 + block.width / 2;
+                        const combinedHalfHeights = obj.height / 2 + block.height / 2;
+                        const deltaX = objCenterX - blockCenterX;
+                        const deltaY = objCenterY - blockCenterY;
 
-                        // Adjust position slightly to prevent sticking
-                        obj.y += obj.vy; 
-                        obj.x += obj.vx;
+                        const overlapX = combinedHalfWidths - Math.abs(deltaX);
+                        const overlapY = combinedHalfHeights - Math.abs(deltaY);
 
+                        const DAMPENING = 0.7; 
+                        const FRICTION = 0.9; 
+
+                        if (overlapX >= overlapY) { // Collision is more horizontal
+                            obj.vx *= -DAMPENING;
+                            obj.vy *= FRICTION; 
+                            // Nudge out based on which side the object hit from
+                            if (deltaX > 0) { // Object's center was to the right of block's center
+                                obj.x = block.x + block.width + 1; // Place obj to the right of block
+                            } else { // Object's center was to the left of block's center
+                                obj.x = block.x - obj.width - 1;   // Place obj to the left of block
+                            }
+                        } else { // Collision is more vertical
+                            obj.vy *= -DAMPENING;
+                            obj.vx *= FRICTION;
+                            // Nudge out based on which side the object hit from
+                            if (deltaY > 0) { // Object's center was below block's center
+                                obj.y = block.y + block.height + 1; // Place obj below the block
+                            } else { // Object's center was above block's center
+                                obj.y = block.y - obj.height - 1;   // Place obj above the block
+                            }
+                            // Add a very small random horizontal nudge on vertical bounce
+                            obj.vx += (Math.random() - 0.5) * 0.5; 
+                        }
+                        
                         objectHitBarrierThisFrame = true;
                         break; 
                     }
@@ -502,15 +530,15 @@ function updateAndDrawFallingObjects(ctx) {
             ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
         }
 
-        // Player Collision (Bomb specific)
-        if (obj.type === "bomb") {
-            const playerVisualTopY = player.y - player.height - player.barrelHeight;
-            const playerVisualBottomY = player.y; // player.y is the bottom of the base
+        // Player Collision Logic
+        const playerVisualTopY = player.y - player.height - player.barrelHeight;
+        const playerVisualBottomY = player.y; 
 
+        if (obj.type === "bomb") {
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
-                obj.y < playerVisualBottomY && // Bomb's top edge vs player's bottom
-                obj.y + obj.height > playerVisualTopY) { // Bomb's bottom edge vs player's top
+                obj.y < playerVisualBottomY && 
+                obj.y + obj.height > playerVisualTopY) { 
 
                 const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
                 createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
@@ -527,10 +555,24 @@ function updateAndDrawFallingObjects(ctx) {
                 // However, freezeFrame will stop further updates this frame.
                 continue; // Skip off-screen check for this bomb as game is ending
             }
+        } else if (obj.type === "powerup_generic") {
+            const playerVisualTopY = player.y - player.height - player.barrelHeight;
+            const playerVisualBottomY = player.y; 
+
+            if (obj.x < player.x + player.width &&
+                obj.x + obj.width > player.x &&
+                obj.y < playerVisualBottomY &&      
+                obj.y + obj.height > playerVisualTopY) { 
+            
+                // Power-up collected
+                fallingObjects.splice(i, 1); 
+                // console.log("Power-up collected (placeholder)"); 
+                continue; 
+            }
         }
 
         // Off-Screen Removal (if not already removed by collision)
-        if (obj.y > canvas.height) {
+        if (obj.y > canvas.height) { // This check is now safe due to 'continue' in collision blocks
             fallingObjects.splice(i, 1);
         }
     }
@@ -1234,3 +1276,48 @@ function gameLoop() {
 initializeStars(); // Call once before game starts
 gameLoop();
 
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
