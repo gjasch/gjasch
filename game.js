@@ -14,6 +14,7 @@ const NUM_STARS = 100; // Adjust for desired density
 const INVINCIBILITY_DURATION_FRAMES = 300; // Approx 5 seconds at 60FPS
 const AUTOFIRE_DURATION_FRAMES = 300; // Approx 5 seconds at 60FPS
 const AUTOFIRE_COOLDOWN_FRAMES = 5;  // Cooldown between auto-fired shots (e.g., 12 shots/sec)
+const DUALBARREL_DURATION_FRAMES = 480; // Approx 8 seconds at 60FPS
 
 // UI Message
 let powerupMessage = "";
@@ -49,6 +50,10 @@ const POWERUP_AUTOFIRE_WIDTH = 20;
 const POWERUP_AUTOFIRE_HEIGHT = 20;
 const POWERUP_AUTOFIRE_COLOR = '#FFA500'; // Orange
 
+const POWERUP_DUALBARREL_WIDTH = 20;
+const POWERUP_DUALBARREL_HEIGHT = 20;
+const POWERUP_DUALBARREL_COLOR = '#00FF00'; // Bright Green
+
 // Player properties
 const player = {
   width: 50,
@@ -71,7 +76,9 @@ const player = {
   autoFireNextShotTimer: 0,
   isTryingToFireKeyboard: false,
   isTryingToFireTouch: false,
-  isTryingToFireGamepad: false
+  isTryingToFireGamepad: false,
+  hasDualBarrel: false,
+  dualBarrelTimer: 0
 };
 
 // Enemy Configuration
@@ -330,14 +337,42 @@ function initializeBarriers() {
 
 function playerShoot() {
   const barrelTipY = player.y - player.height - player.barrelHeight;
-  bullets.push({
-    x: player.x + player.width / 2 - bulletConfig.width / 2,
-    y: barrelTipY, 
-    width: bulletConfig.width,
-    height: bulletConfig.height,
-    color: bulletConfig.color,
-    speed: bulletConfig.speed
-  });
+
+  if (player.hasDualBarrel) {
+    const spreadAmount = 10; // Pixels offset from center for each barrel
+    const centerBarrelX = player.x + player.width / 2 - bulletConfig.width / 2;
+
+    // Left bullet
+    bullets.push({
+      x: centerBarrelX - spreadAmount,
+      y: barrelTipY,
+      width: bulletConfig.width,
+      height: bulletConfig.height,
+      color: bulletConfig.color,
+      speed: bulletConfig.speed
+    });
+
+    // Right bullet
+    bullets.push({
+      x: centerBarrelX + spreadAmount,
+      y: barrelTipY,
+      width: bulletConfig.width,
+      height: bulletConfig.height,
+      color: bulletConfig.color,
+      speed: bulletConfig.speed
+    });
+
+  } else {
+    // Single, centered bullet (existing logic)
+    bullets.push({
+      x: player.x + player.width / 2 - bulletConfig.width / 2,
+      y: barrelTipY,
+      width: bulletConfig.width,
+      height: bulletConfig.height,
+      color: bulletConfig.color,
+      speed: bulletConfig.speed
+    });
+  }
 }
 
 function enemyShoot() {
@@ -395,17 +430,38 @@ function spawnFallingObject() {
                 width: BOMB_WIDTH,
                 height: BOMB_HEIGHT,
                 color: BOMB_COLOR,
-                type: "bomb" 
+                type: "bomb"
             };
-        } else { // This block previously spawned "powerup_shield"
-            // objectType = "powerup_autofire"; // Local var not strictly needed if props.type is set
-            newObjectProps = {
-                vy: FALLING_OBJECT_BASE_VY_POWERUP, 
-                width: POWERUP_AUTOFIRE_WIDTH,
-                height: POWERUP_AUTOFIRE_HEIGHT,
-                color: POWERUP_AUTOFIRE_COLOR, // Use the new Orange color
-                type: "powerup_autofire"       // Set type to "powerup_autofire"
-            };
+        } else {
+            const availablePowerupTypes = ["powerup_shield", "powerup_autofire", "powerup_dualbarrel"];
+            const randomIndex = Math.floor(Math.random() * availablePowerupTypes.length);
+            const selectedPowerupType = availablePowerupTypes[randomIndex];
+
+            if (selectedPowerupType === "powerup_shield") {
+                newObjectProps = {
+                    vy: FALLING_OBJECT_BASE_VY_POWERUP,
+                    width: POWERUP_SHIELD_WIDTH,
+                    height: POWERUP_SHIELD_HEIGHT,
+                    color: POWERUP_SHIELD_COLOR,
+                    type: "powerup_shield"
+                };
+            } else if (selectedPowerupType === "powerup_autofire") {
+                newObjectProps = {
+                    vy: FALLING_OBJECT_BASE_VY_POWERUP,
+                    width: POWERUP_AUTOFIRE_WIDTH,
+                    height: POWERUP_AUTOFIRE_HEIGHT,
+                    color: POWERUP_AUTOFIRE_COLOR,
+                    type: "powerup_autofire"
+                };
+            } else if (selectedPowerupType === "powerup_dualbarrel") {
+                newObjectProps = {
+                    vy: FALLING_OBJECT_BASE_VY_POWERUP,
+                    width: POWERUP_DUALBARREL_WIDTH,
+                    height: POWERUP_DUALBARREL_HEIGHT,
+                    color: POWERUP_DUALBARREL_COLOR,
+                    type: "powerup_dualbarrel"
+                };
+            }
         }
         
         if (newObjectProps.type) { // Ensure newObjectProps was successfully populated
@@ -570,6 +626,16 @@ function updateAndDrawFallingObjects(ctx) {
             ctx.fillStyle = obj.color; // Should be POWERUP_AUTOFIRE_COLOR (Orange)
             ctx.fill();
             ctx.closePath();
+        } else if (obj.type === "powerup_dualbarrel") { // <<< ADD THIS BLOCK
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2; 
+    
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = obj.color; // Should be POWERUP_DUALBARREL_COLOR (Green)
+            ctx.fill();
+            ctx.closePath();
         } else {
             // Default drawing for any other future types
             ctx.fillStyle = obj.color;
@@ -641,6 +707,25 @@ function updateAndDrawFallingObjects(ctx) {
                 fallingObjects.splice(i, 1); // Remove the power-up
                 continue; // Skip to the next falling object
             }
+        } else if (obj.type === "powerup_dualbarrel") {
+            // AABB collision check with player (copy from other powerup types)
+            const playerVisualTopY = player.y - player.height - player.barrelHeight;
+            const playerVisualBottomY = player.y;
+    
+            if (obj.x < player.x + player.width &&
+                obj.x + obj.width > player.x &&
+                obj.y < playerVisualBottomY &&
+                obj.y + obj.height > playerVisualTopY) {
+                
+                player.hasDualBarrel = true;
+                player.dualBarrelTimer = DUALBARREL_DURATION_FRAMES;
+    
+                powerupMessage = "Dual Barrel Active!"; 
+                powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
+                
+                fallingObjects.splice(i, 1); // Remove the power-up
+                continue; // Skip to the next falling object
+            }
         }
 
         // Off-Screen Removal (if not already removed by collision)
@@ -670,6 +755,8 @@ function resetPlayerPosition() {
   player.isTryingToFireKeyboard = false;
   player.isTryingToFireTouch = false;
   player.isTryingToFireGamepad = false;
+  player.hasDualBarrel = false;
+  player.dualBarrelTimer = 0;
 }
 
 
@@ -1072,6 +1159,12 @@ function updatePlayer() {
   if (player.autoFireNextShotTimer > 0) {
       player.autoFireNextShotTimer--;
   }
+  if (player.hasDualBarrel) {
+      player.dualBarrelTimer--;
+      if (player.dualBarrelTimer <= 0) {
+          player.hasDualBarrel = false;
+      }
+  }
   if (player.isMovingLeftKeyboard || player.isMovingLeftTouch || player.isMovingLeftGamepad) player.x -= player.speed;
   if (player.isMovingRightKeyboard || player.isMovingRightTouch || player.isMovingRightGamepad) player.x += player.speed;
 
@@ -1448,3 +1541,51 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
