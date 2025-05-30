@@ -104,6 +104,12 @@ let player1Score = 0;
 let player2Score = 0;
 
 const WINNING_SCORE = 5; // Or any score you prefer
+
+// AI Behavior Parameters
+const AI_REACTION_ZONE_X = CANVAS_WIDTH / 2; // Example: AI intensifies reaction when ball crosses half-court. (Currently unused, but good for future)
+const AI_TARGET_OFFSET_MAX = PADDLE_HEIGHT * 0.35; // Max random vertical offset AI aims for, relative to ball. e.g., 35% of paddle height.
+// const AI_MISS_CHANCE = 0.05; // Example: 5% chance AI 'messes up' on a given cycle. (Currently unused, for future refinement)
+
 let winnerMessage = ""; // Keep for game over message
 let currentGameState = STATE_TITLE_SCREEN;
 let gameMode = 'two_player'; // Default or set to null until chosen
@@ -184,30 +190,35 @@ function updatePaddles() {
 
     // Player 2 paddle movement
     if (gameMode === 'one_player' && currentGameState === STATE_PLAYING) {
-        // AI controls Player 2 paddle
-        const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
-        const distanceToBall = ball.y - paddleCenterY;
+        // --- New AI controls Player 2 paddle ---
+        player2Paddle.dy = 0; // Default to no movement unless conditions are met
 
-        // Adjust this multiplier for AI difficulty (0.1 is a common starting point)
-        // A higher value makes the AI faster/more responsive.
-        const aiSpeedFactor = 0.08; // Reduced for potentially more human-like speed
+        if (ball.dx > 0) { // Only react if ball is moving towards AI (right paddle)
 
-        let targetDy = distanceToBall * aiSpeedFactor;
+            // Calculate AI's target Y position with a random offset
+            let targetY = ball.y + (Math.random() - 0.5) * 2 * AI_TARGET_OFFSET_MAX;
 
-        // Optional: Cap AI speed to prevent it from being too fast
-        const maxAiSpeed = PADDLE_SPEED * 0.75; // AI can move at 75% of player's max speed
-        if (Math.abs(targetDy) > maxAiSpeed) {
-            targetDy = Math.sign(targetDy) * maxAiSpeed;
+            // Define a small dead zone to prevent jittering when ball is aligned with paddle center
+            const deadZone = PADDLE_HEIGHT * 0.1; // e.g., 10% of paddle height
+
+            if (player2Paddle.y + player2Paddle.height / 2 < targetY - deadZone) {
+                // Paddle center is above the target zone (targetY - deadZone), need to move down
+                player2Paddle.dy = PADDLE_SPEED;
+            } else if (player2Paddle.y + player2Paddle.height / 2 > targetY + deadZone) {
+                // Paddle center is below the target zone (targetY + deadZone), need to move up
+                player2Paddle.dy = -PADDLE_SPEED;
+            }
+            // If paddle center is within targetY +/- deadZone, dy remains 0 (no movement)
         }
-
-        player2Paddle.y += targetDy;
+        // Apply movement based on calculated dy
+        player2Paddle.y += player2Paddle.dy;
 
     } else if (gameMode === 'two_player') {
         // Player 2 paddle is controlled by keyboard (dy is set by event listeners)
         player2Paddle.y += player2Paddle.dy;
     }
     // Else (e.g. if gameMode is null or other states like countdown/game_over for P2)
-    // P2 paddle dy is likely 0 or not updated by keys, so it remains static unless AI moves it.
+    // P2 paddle dy is already 0 or not updated by keys, so it remains static.
 
     // Keep player 2 paddle within canvas bounds (common for both AI and human player)
     if (player2Paddle.y < 0) {
