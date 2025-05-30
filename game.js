@@ -41,6 +41,7 @@ const FALLING_OBJECT_BASE_VY_POWERUP = 2; // Powerups fall slightly slower
 const POWERUP_SHIELD_WIDTH = 20;    
 const POWERUP_SHIELD_HEIGHT = 20;   
 const POWERUP_SHIELD_COLOR = '#00FFFF'; // Cyan
+const FALLING_OBJECT_GRAVITY = 0.1;
 
 // Player properties
 const player = {
@@ -447,6 +448,7 @@ function updateAndDrawFallingObjects(ctx) {
 
         obj.y += obj.vy;
         obj.x += obj.vx; // For bouncing later
+        obj.vy += FALLING_OBJECT_GRAVITY; // Apply gravity
 
         // Barrier Collision Logic
         let objectHitBarrierThisFrame = false; 
@@ -1356,3 +1358,51 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
