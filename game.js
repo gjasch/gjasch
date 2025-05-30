@@ -27,6 +27,11 @@ const BOMB_WIDTH = 15;
 const BOMB_HEIGHT = 15;
 const BOMB_COLOR = '#800000'; // Maroon
 
+const POWERUP_GENERIC_WIDTH = 20;
+const POWERUP_GENERIC_HEIGHT = 20;
+const POWERUP_GENERIC_COLOR = '#4A90E2'; // A distinct blue
+const FALLING_OBJECT_BASE_VY_POWERUP = 2; // Powerups fall slightly slower
+
 // Player properties
 const player = {
   width: 50,
@@ -355,29 +360,41 @@ function spawnFallingObject() {
     // const effectiveSpawnChance = Math.min(0.02 + (currentLevel - 1) * 0.001, 0.1); // Example for testing
 
     if (Math.random() < effectiveSpawnChance) {
-        const objectType = "bomb"; // Only bombs for now
+        let objectType; // Determined by logic below
+        let newObjectProps = {};
 
-        // TODO: Later, add logic to randomly select objectType (bomb or powerup)
+        if (Math.random() < 0.7) { // 70% chance for a bomb
+            objectType = "bomb"; // Retained for potential direct use, though newObjectProps.type is primary
+            newObjectProps = {
+                vy: FALLING_OBJECT_BASE_VY_BOMB,
+                width: BOMB_WIDTH,
+                height: BOMB_HEIGHT,
+                color: BOMB_COLOR,
+                type: "bomb" 
+            };
+        } else { // 30% chance for a generic power-up
+            objectType = "powerup_generic"; // Retained for potential direct use
+            newObjectProps = {
+                vy: FALLING_OBJECT_BASE_VY_POWERUP,
+                width: POWERUP_GENERIC_WIDTH,
+                height: POWERUP_GENERIC_HEIGHT,
+                color: POWERUP_GENERIC_COLOR,
+                type: "powerup_generic"
+            };
+        }
         
-        let newObjectProps = {
-            vy: FALLING_OBJECT_BASE_VY_BOMB,
-            width: BOMB_WIDTH,
-            height: BOMB_HEIGHT,
-            color: BOMB_COLOR
-        };
-
-        // Future: if (objectType === "powerup_shield") { /* assign powerup props */ }
-        
-        fallingObjects.push({
-            x: Math.random() * (canvas.width - newObjectProps.width),
-            y: 0 - newObjectProps.height, // Start just above screen
-            vx: 0,
-            vy: newObjectProps.vy,
-            width: newObjectProps.width,
-            height: newObjectProps.height,
-            type: objectType,
-            color: newObjectProps.color
-        });
+        if (newObjectProps.type) { // Ensure newObjectProps was successfully populated
+            fallingObjects.push({
+                x: Math.random() * (canvas.width - newObjectProps.width),
+                y: 0 - newObjectProps.height, // Start just above screen
+                vx: 0,
+                vy: newObjectProps.vy,
+                width: newObjectProps.width,
+                height: newObjectProps.height,
+                type: newObjectProps.type, // Use type from newObjectProps
+                color: newObjectProps.color
+            });
+        }
     }
 }
 
@@ -453,8 +470,37 @@ function updateAndDrawFallingObjects(ctx) {
         }
         // End Barrier Collision Logic
 
-        ctx.fillStyle = obj.color;
-        ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        if (obj.type === "bomb") {
+            // Bomb Body (Circle)
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2.8; // Slightly smaller than half width for fuse space
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = obj.color; // BOMB_COLOR (maroon)
+            ctx.fill();
+            ctx.closePath();
+
+            // Fuse (Small Rectangle on top)
+            const fuseWidth = 4;
+            const fuseHeight = 6;
+            const fuseX = centerX - fuseWidth / 2;
+            // Place fuse Y so it appears to come out of the top of the circle body
+            const fuseY = centerY - radius - fuseHeight + (radius * 0.2); // Adjust '+2' for visual preference
+
+            ctx.fillStyle = '#555555'; // Dark gray for the fuse
+            ctx.fillRect(fuseX, fuseY, fuseWidth, fuseHeight);
+            
+            // (Optional: small spark at the tip of the fuse)
+            // ctx.fillStyle = 'yellow';
+            // ctx.fillRect(fuseX + fuseWidth/2 - 1, fuseY - 2, 2, 2);
+
+        } else {
+            // Default drawing for other types (future power-ups)
+            ctx.fillStyle = obj.color;
+            ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        }
 
         // Player Collision (Bomb specific)
         if (obj.type === "bomb") {
@@ -1187,3 +1233,49 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
