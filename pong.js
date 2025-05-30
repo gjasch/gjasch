@@ -288,6 +288,8 @@ function updateBall() {
 }
 
 function gameLoop() {
+    let textWidth; // Declare once at the top of the function scope
+
     // Clear canvas (common to all states, or move into each state's render logic if background changes)
     drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BACKGROUND);
 
@@ -300,21 +302,21 @@ function gameLoop() {
             context.fillStyle = COLOR_FOREGROUND;
             context.font = '70px Arial';
             const titleText = "PONG";
-            let textWidth = context.measureText(titleText).width;
+            textWidth = context.measureText(titleText).width; // Assignment
             context.fillText(titleText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2 - 50);
 
             // Draw 1 Player Start button
             drawRect(onePlayerStartButton.x, onePlayerStartButton.y, onePlayerStartButton.width, onePlayerStartButton.height, COLOR_FOREGROUND);
             context.fillStyle = COLOR_BACKGROUND;
             context.font = '25px Arial'; // Adjust font size as needed
-            textWidth = context.measureText(onePlayerStartButton.text).width;
+            textWidth = context.measureText(onePlayerStartButton.text).width; // Assignment
             context.fillText(onePlayerStartButton.text, onePlayerStartButton.x + (onePlayerStartButton.width - textWidth) / 2, onePlayerStartButton.y + onePlayerStartButton.height / 2 + 8);
 
             // Draw 2 Players Start button
             drawRect(twoPlayerStartButton.x, twoPlayerStartButton.y, twoPlayerStartButton.width, twoPlayerStartButton.height, COLOR_FOREGROUND);
             context.fillStyle = COLOR_BACKGROUND;
             context.font = '25px Arial';
-            textWidth = context.measureText(twoPlayerStartButton.text).width;
+            textWidth = context.measureText(twoPlayerStartButton.text).width; // Assignment
             context.fillText(twoPlayerStartButton.text, twoPlayerStartButton.x + (twoPlayerStartButton.width - textWidth) / 2, twoPlayerStartButton.y + twoPlayerStartButton.height / 2 + 8);
             break;
 
@@ -343,7 +345,7 @@ function gameLoop() {
             if (countdownValue <=0) { // If we want "Go!" to not show once playing starts.
                  // Do nothing here if we want it to disappear immediately when state changes
             } else {
-                const textWidth = context.measureText(countText).width;
+                textWidth = context.measureText(countText).width; // Assignment
                 context.fillText(countText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
             }
             break;
@@ -382,21 +384,21 @@ function gameLoop() {
             context.fillText(p2ScoreText, CANVAS_WIDTH * 3 / 4 - 30, 50);
 
             context.font = '60px Arial'; // Winner message
-            let textWidth = context.measureText(winnerMessage).width; // winnerMessage should still be set when transitioning to GAME_OVER
+            textWidth = context.measureText(winnerMessage).width; // Assignment // winnerMessage should still be set when transitioning to GAME_OVER
             context.fillText(winnerMessage, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
 
             // Draw Rematch button
             drawRect(rematchButton.x, rematchButton.y, rematchButton.width, rematchButton.height, COLOR_FOREGROUND);
             context.fillStyle = COLOR_BACKGROUND;
             context.font = '25px Arial'; // Slightly smaller font for these buttons
-            textWidth = context.measureText(rematchButton.text).width;
+            textWidth = context.measureText(rematchButton.text).width; // Assignment
             context.fillText(rematchButton.text, rematchButton.x + (rematchButton.width - textWidth) / 2, rematchButton.y + rematchButton.height / 2 + 8);
 
             // Draw Back to Menu button
             drawRect(backToMenuButton.x, backToMenuButton.y, backToMenuButton.width, backToMenuButton.height, COLOR_FOREGROUND);
             context.fillStyle = COLOR_BACKGROUND;
             context.font = '25px Arial';
-            textWidth = context.measureText(backToMenuButton.text).width;
+            textWidth = context.measureText(backToMenuButton.text).width; // Assignment
             context.fillText(backToMenuButton.text, backToMenuButton.x + (backToMenuButton.width - textWidth) / 2, backToMenuButton.y + backToMenuButton.height / 2 + 8);
             break;
     }
