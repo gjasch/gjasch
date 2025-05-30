@@ -28,7 +28,7 @@ const PARTICLE_MIN_SPEED = 1; // Min initial speed
 
 // Falling Objects
 let fallingObjects = [];
-const FALLING_OBJECT_BASE_VY_BOMB = 3;
+const FALLING_OBJECT_BASE_VY_BOMB = 1.5;
 const BOMB_WIDTH = 15;
 const BOMB_HEIGHT = 15;
 const BOMB_COLOR = '#800000'; // Maroon
@@ -36,12 +36,12 @@ const BOMB_COLOR = '#800000'; // Maroon
 const POWERUP_GENERIC_WIDTH = 20; // Can be reused for shield
 const POWERUP_GENERIC_HEIGHT = 20; // Can be reused for shield
 const POWERUP_GENERIC_COLOR = '#4A90E2'; // A distinct blue
-const FALLING_OBJECT_BASE_VY_POWERUP = 2; // Powerups fall slightly slower
+const FALLING_OBJECT_BASE_VY_POWERUP = 1.0; // Powerups fall slightly slower
 
 const POWERUP_SHIELD_WIDTH = 20;    
 const POWERUP_SHIELD_HEIGHT = 20;   
 const POWERUP_SHIELD_COLOR = '#00FFFF'; // Cyan
-const FALLING_OBJECT_GRAVITY = 0.1;
+const FALLING_OBJECT_GRAVITY = 0.04;
 
 // Player properties
 const player = {
@@ -1358,3 +1358,51 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
