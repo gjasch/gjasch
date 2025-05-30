@@ -1,0 +1,18 @@
+body {
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center;    /* Center vertically */
+    height: 100vh;          /* Full viewport height */
+    margin: 0;              /* Remove default body margin */
+    background-color: #333; /* Dark grey background for the page */
+    font-family: Arial, sans-serif; /* Basic font for any page text */
+}
+
+canvas {
+    border: 1px solid white; /* Optional: adds a border around the canvas */
+    /* 
+       The canvas dimensions are set in JavaScript (800x600).
+       If you wanted the canvas to be responsive, more complex CSS would be needed,
+       but for this fixed-size game, direct styling is straightforward.
+    */
+}

@@ -70,6 +70,10 @@ if (Math.random() < 0.5) {
 let player1Score = 0;
 let player2Score = 0;
 
+const WINNING_SCORE = 5; // Or any score you prefer
+let gameOver = false;
+let winnerMessage = "";
+
 function resetBall() {
     ball.x = CANVAS_WIDTH / 2;
     ball.y = CANVAS_HEIGHT / 2;
@@ -180,42 +184,66 @@ function updateBall() {
 
     // Scoring logic
     if (ball.x - ball.radius < 0) { // Ball went past left paddle
-        player2Score++;
-        // console.log("Player 2 Score:", player2Score); // For debugging
-        resetBall();
+        if (!gameOver) { // Only score if game is not already over
+            player2Score++;
+            // console.log("Player 2 Score:", player2Score); // For debugging
+            if (player2Score >= WINNING_SCORE) {
+                gameOver = true;
+                winnerMessage = "Player 2 Wins!";
+            }
+            if (!gameOver) resetBall(); // Only reset if game is not over
+        }
     } else if (ball.x + ball.radius > CANVAS_WIDTH) { // Ball went past right paddle
-        player1Score++;
-        // console.log("Player 1 Score:", player1Score); // For debugging
-        resetBall();
+        if (!gameOver) { // Only score if game is not already over
+            player1Score++;
+            // console.log("Player 1 Score:", player1Score); // For debugging
+            if (player1Score >= WINNING_SCORE) {
+                gameOver = true;
+                winnerMessage = "Player 1 Wins!";
+            }
+            if (!gameOver) resetBall(); // Only reset if game is not over
+        }
     }
 }
 
-// --- Game Update and Render (will become the game loop) ---
-updatePaddles(); // Update paddle positions
-updateBall();    // Update ball position and check for wall collision
+function gameLoop() {
+    // --- Update game state ---
+    if (!gameOver) {
+        updatePaddles();
+        updateBall();
+    }
 
-// Clear canvas
-drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BACKGROUND);
+    // --- Render/Draw game elements ---
+    // Clear canvas
+    drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BACKGROUND);
 
-// Draw player 1 paddle
-drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
+    // Draw player 1 paddle
+    drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
 
-// Draw player 2 paddle
-drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
+    // Draw player 2 paddle
+    drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
 
-// Draw ball
-drawCircle(ball.x, ball.y, ball.radius, ball.color);
+    // Draw ball
+    drawCircle(ball.x, ball.y, ball.radius, ball.color);
 
     // Display Scores
     context.fillStyle = COLOR_FOREGROUND;
-    context.font = '45px Arial'; // Set font size and family
-
-    // Player 1 Score (left side)
+    context.font = '45px Arial';
     context.fillText(player1Score.toString(), CANVAS_WIDTH / 4, 50);
-
-    // Player 2 Score (right side)
-    // To align P2 score nicely, measure text width if needed, or place it relative to 3/4 width
     const player2ScoreText = player2Score.toString();
-    // const player2ScoreTextWidth = context.measureText(player2ScoreText).width; // Optional for precise alignment
-    context.fillText(player2ScoreText, CANVAS_WIDTH * 3 / 4 - 30, 50); // Adjusted position for typical two-digit scores
-                                                                    // A fixed offset like -30 or - (font_size) should work for small scores
+    context.fillText(player2ScoreText, CANVAS_WIDTH * 3 / 4 - 30, 50);
+
+    // Display Winner Message if Game Over
+    if (gameOver) {
+        context.fillStyle = COLOR_FOREGROUND;
+        context.font = '60px Arial';
+        const textWidth = context.measureText(winnerMessage).width;
+        context.fillText(winnerMessage, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
+    }
+
+    // --- Request next frame ---
+    requestAnimationFrame(gameLoop);
+}
+
+// Start the game loop
+requestAnimationFrame(gameLoop);
