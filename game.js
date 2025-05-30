@@ -38,15 +38,15 @@ let fallingObjects = [];
 const FALLING_OBJECT_BASE_VY_BOMB = 1.5;
 const BOMB_WIDTH = 15;
 const BOMB_HEIGHT = 15;
-const BOMB_COLOR = '#800000'; // Maroon
+const BOMB_COLOR = '#333333'; // Dark Gray
 
 const POWERUP_GENERIC_WIDTH = 20; // Can be reused for shield
 const POWERUP_GENERIC_HEIGHT = 20; // Can be reused for shield
 const POWERUP_GENERIC_COLOR = '#4A90E2'; // A distinct blue
 const FALLING_OBJECT_BASE_VY_POWERUP = 1.0; // Powerups fall slightly slower
 
-const POWERUP_SHIELD_WIDTH = 20;    
-const POWERUP_SHIELD_HEIGHT = 20;   
+const POWERUP_SHIELD_WIDTH = 20;
+const POWERUP_SHIELD_HEIGHT = 20;
 const POWERUP_SHIELD_COLOR = '#00FFFF'; // Cyan
 const FALLING_OBJECT_GRAVITY = 0.04;
 
@@ -93,11 +93,11 @@ const player = {
 
 // Enemy Configuration
 const enemyConfig = {
-  width: 40, 
-  height: 30, 
+  width: 40,
+  height: 30,
   color: 'red', // Default color, can be overridden by type
   speed: 2, // Base speed
-  rows: 3, 
+  rows: 3,
   cols: 8,
   padding: 10,
   marginTop: 30,
@@ -112,29 +112,29 @@ const alienShapePatterns = {
             " 111111 ",
             "11111111",
             "11 11 11",
-            "11111111" 
+            "11111111"
         ],
-        color: "red" 
+        color: "red"
     },
-    type2: { 
+    type2: {
         pattern: [
             "   11   ",
             "  1111  ",
             " 111111 ",
             "11111111",
-            "1  11  1" 
+            "1  11  1"
         ],
-        color: "mediumorchid" 
+        color: "mediumorchid"
     },
-    type3: { 
+    type3: {
         pattern: [
             "1  11  1",
             " 111111 ",
             "11111111",
             "11111111",
-            "  1  1  " 
+            "  1  1  "
         ],
-        color: "orange" 
+        color: "orange"
     }
 };
 const alienTypeKeys = Object.keys(alienShapePatterns);
@@ -154,26 +154,26 @@ const bulletConfig = {
 let bullets = [];
 
 // Enemy Bullet Configuration
-const enemyBulletConfig = { 
-  width: 4, 
-  height: 10, 
-  color: "pink", 
-  speed: 4 
+const enemyBulletConfig = {
+  width: 4,
+  height: 10,
+  color: "pink",
+  speed: 4
 };
 let enemyBullets = [];
 
 
 // Barrier Constants & Array
 const BARRIER_COUNT = 4;
-const BARRIER_COLOR = player.color; 
-const BARRIER_BLOCK_SIZE = 5; 
-const BARRIER_BLOCK_ROWS = 9; 
+const BARRIER_COLOR = player.color;
+const BARRIER_BLOCK_SIZE = 5;
+const BARRIER_BLOCK_ROWS = 9;
 let barriers = [];
 
 
 // Game State
-let gameState = "title"; 
-let gameWon = false; 
+let gameState = "title";
+let gameWon = false;
 let onScreenControlsEnabled = false;
 let freezeFrameUntil = 0;
 let nextStateAfterFreeze = "";
@@ -184,7 +184,7 @@ let settingsButton = {};
 let onScreenControlsToggleButton = {};
 let backButton = {};
 let gameOverToTitleButton = {};
-let readyButtonLevelComplete = {}; 
+let readyButtonLevelComplete = {};
 // continueButtonGameOver will be defined locally in drawing/click handling for game over
 
 const buttonHeight = 50; // General button height for menu buttons
@@ -203,14 +203,14 @@ let osLeftButton = {
   label: "<"
 };
 let osRightButton = {
-  x: osPadding + osButtonWidth + osPadding, 
+  x: osPadding + osButtonWidth + osPadding,
   y: canvas.height - osButtonHeight - osPadding,
   width: osButtonWidth,
   height: osButtonHeight,
   label: ">"
 };
 let osFireButton = {
-  x: canvas.width - osButtonWidth - osPadding, 
+  x: canvas.width - osButtonWidth - osPadding,
   y: canvas.height - osButtonHeight - osPadding,
   width: osButtonWidth,
   height: osButtonHeight,
@@ -255,7 +255,7 @@ function initializeEnemies() {
 
   for (let row = 0; row < currentEnemyRows; row++) {
     for (let col = 0; col < currentEnemyCols; col++) {
-      const typeIndex = row % alienTypeKeys.length; 
+      const typeIndex = row % alienTypeKeys.length;
       const enemyTypeKey = alienTypeKeys[typeIndex];
       const enemyPatternData = alienShapePatterns[enemyTypeKey];
 
@@ -264,8 +264,8 @@ function initializeEnemies() {
         y: enemyConfig.marginTop + row * (enemyConfig.height + enemyConfig.padding),
         width: enemyConfig.width,
         height: enemyConfig.height,
-        color: enemyPatternData.color, 
-        type: enemyTypeKey, 
+        color: enemyPatternData.color,
+        type: enemyTypeKey,
         alive: true
       });
     }
@@ -274,19 +274,19 @@ function initializeEnemies() {
 
 function initializeBarriers() {
   barriers = [];
-  
+
   const targetBarrierWidth = player.width * 1.5;
   const newBarrierBlockCols = Math.floor(targetBarrierWidth / BARRIER_BLOCK_SIZE);
   // console.log("Calculated newBarrierBlockCols:", newBarrierBlockCols);
 
   const singleBarrierActualWidth = newBarrierBlockCols * BARRIER_BLOCK_SIZE;
 
-  const interBarrierGap = 60; 
+  const interBarrierGap = 60;
   const totalBarriersGroupWidth = (BARRIER_COUNT * singleBarrierActualWidth) + ((BARRIER_COUNT - 1) * interBarrierGap);
   const groupStartX = (canvas.width - totalBarriersGroupWidth) / 2;
 
   const playerCannonTopY = player.y - player.height - player.barrelHeight;
-  const currentBarrierY = playerCannonTopY - (BARRIER_BLOCK_ROWS * BARRIER_BLOCK_SIZE) - 30; 
+  const currentBarrierY = playerCannonTopY - (BARRIER_BLOCK_ROWS * BARRIER_BLOCK_SIZE) - 30;
 
   const barrierShapePattern = [
       "   111111111   ",
@@ -297,22 +297,22 @@ function initializeBarriers() {
       "111111111111111",
       "1111  111  1111",
       "111   111   111",
-      "111         111" 
-  ];                       
+      "111         111"
+  ];
 
-  if (newBarrierBlockCols !== 15) { 
+  if (newBarrierBlockCols !== 15) {
     console.warn(`Barrier shape pattern width (15) does not match calculated newBarrierBlockCols (${newBarrierBlockCols}). Falling back to solid rectangular barriers.`);
     for (let i = 0; i < BARRIER_COUNT; i++) {
       const barrierX = groupStartX + i * (singleBarrierActualWidth + interBarrierGap);
       let barrier = { x: barrierX, y: currentBarrierY, blocks: [] };
-      for (let rowIdx = 0; rowIdx < BARRIER_BLOCK_ROWS; rowIdx++) { 
+      for (let rowIdx = 0; rowIdx < BARRIER_BLOCK_ROWS; rowIdx++) {
         for (let colIdx = 0; colIdx < newBarrierBlockCols; colIdx++) {
           let blockX = barrier.x + colIdx * BARRIER_BLOCK_SIZE;
           let blockY = barrier.y + rowIdx * BARRIER_BLOCK_SIZE;
-          barrier.blocks.push({ 
-            x: blockX, y: blockY, 
-            width: BARRIER_BLOCK_SIZE, height: BARRIER_BLOCK_SIZE, 
-            alive: true 
+          barrier.blocks.push({
+            x: blockX, y: blockY,
+            width: BARRIER_BLOCK_SIZE, height: BARRIER_BLOCK_SIZE,
+            alive: true
           });
         }
       }
@@ -323,17 +323,17 @@ function initializeBarriers() {
       const barrierX = groupStartX + i * (singleBarrierActualWidth + interBarrierGap);
       let barrier = { x: barrierX, y: currentBarrierY, blocks: [] };
       for (let rowIdx = 0; rowIdx < BARRIER_BLOCK_ROWS; rowIdx++) {
-        if (barrierShapePattern[rowIdx]) { 
+        if (barrierShapePattern[rowIdx]) {
           for (let colIdx = 0; colIdx < newBarrierBlockCols; colIdx++) {
-            if (barrierShapePattern[rowIdx].charAt(colIdx) === '1') { 
+            if (barrierShapePattern[rowIdx].charAt(colIdx) === '1') {
               let blockX = barrier.x + colIdx * BARRIER_BLOCK_SIZE;
               let blockY = barrier.y + rowIdx * BARRIER_BLOCK_SIZE;
-              barrier.blocks.push({ 
-                x: blockX, 
-                y: blockY, 
-                width: BARRIER_BLOCK_SIZE, 
-                height: BARRIER_BLOCK_SIZE, 
-                alive: true 
+              barrier.blocks.push({
+                x: blockX,
+                y: blockY,
+                width: BARRIER_BLOCK_SIZE,
+                height: BARRIER_BLOCK_SIZE,
+                alive: true
               });
             }
           }
@@ -387,13 +387,13 @@ function playerShoot() {
 
 function enemyShoot() {
   const firingProbability = 0.01 + (currentLevel - 1) * 0.002;
-  if (Math.random() < firingProbability) { 
+  if (Math.random() < firingProbability) {
     let aliveEnemies = enemies.filter(e => e.alive);
     if (aliveEnemies.length > 0) {
       let shooter = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
       enemyBullets.push({
         x: shooter.x + shooter.width / 2 - enemyBulletConfig.width / 2,
-        y: shooter.y + shooter.height, 
+        y: shooter.y + shooter.height,
         width: enemyBulletConfig.width,
         height: enemyBulletConfig.height,
         color: enemyBulletConfig.color,
@@ -481,16 +481,16 @@ function spawnFallingObject() {
                 };
             }
         }
-        
+
         if (newObjectProps.type) { // Ensure newObjectProps was successfully populated
             fallingObjects.push({
                 x: Math.random() * (canvas.width - newObjectProps.width),
                 y: 0 - newObjectProps.height, // Start just above screen
                 vx: 0,
-                vy: newObjectProps.vy, 
-                width: newObjectProps.width, 
-                height: newObjectProps.height, 
-                type: newObjectProps.type, 
+                vy: newObjectProps.vy,
+                width: newObjectProps.width,
+                height: newObjectProps.height,
+                type: newObjectProps.type,
                 color: newObjectProps.color
             });
         }
@@ -521,7 +521,7 @@ function updateAndDrawParticles(ctx) { // Renamed context to ctx for consistency
 
         // Draw particle with fading effect
         // Ensure alpha is between 0 and 1. Max with 0 prevents negative alpha if lifespan somehow drops far below.
-        ctx.globalAlpha = Math.max(0, particle.lifespan / particle.maxLifespan); 
+        ctx.globalAlpha = Math.max(0, particle.lifespan / particle.maxLifespan);
         ctx.fillStyle = particle.color;
         ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
     }
@@ -537,7 +537,7 @@ function updateAndDrawFallingObjects(ctx) {
         obj.vy += FALLING_OBJECT_GRAVITY; // Apply gravity
 
         // Barrier Collision Logic
-        let objectHitBarrierThisFrame = false; 
+        let objectHitBarrierThisFrame = false;
         for (let b = 0; b < barriers.length; b++) {
             const barrier = barriers[b];
             for (let k = 0; k < barrier.blocks.length; k++) {
@@ -548,7 +548,7 @@ function updateAndDrawFallingObjects(ctx) {
                         obj.x + obj.width > block.x &&
                         obj.y < block.y + block.height &&
                         obj.y + obj.height > block.y) {
-                        
+
                         const objCenterX = obj.x + obj.width / 2;
                         const objCenterY = obj.y + obj.height / 2;
                         const blockCenterX = block.x + block.width / 2;
@@ -562,12 +562,12 @@ function updateAndDrawFallingObjects(ctx) {
                         const overlapX = combinedHalfWidths - Math.abs(deltaX);
                         const overlapY = combinedHalfHeights - Math.abs(deltaY);
 
-                        const DAMPENING = 0.7; 
-                        const FRICTION = 0.9; 
+                        const DAMPENING = 0.7;
+                        const FRICTION = 0.9;
 
                         if (overlapX >= overlapY) { // Collision is more horizontal
                             obj.vx *= -DAMPENING;
-                            obj.vy *= FRICTION; 
+                            obj.vy *= FRICTION;
                             // Nudge out based on which side the object hit from
                             if (deltaX > 0) { // Object's center was to the right of block's center
                                 obj.x = block.x + block.width + 1; // Place obj to the right of block
@@ -584,16 +584,16 @@ function updateAndDrawFallingObjects(ctx) {
                                 obj.y = block.y - obj.height - 1;   // Place obj above the block
                             }
                             // Add a very small random horizontal nudge on vertical bounce
-                            obj.vx += (Math.random() - 0.5) * 0.5; 
+                            obj.vx += (Math.random() - 0.5) * 0.5;
                         }
-                        
+
                         objectHitBarrierThisFrame = true;
-                        break; 
+                        break;
                     }
                 }
             }
             if (objectHitBarrierThisFrame) {
-                break; 
+                break;
             }
         }
         // End Barrier Collision Logic
@@ -619,36 +619,60 @@ function updateAndDrawFallingObjects(ctx) {
 
             ctx.fillStyle = '#555555'; // Dark gray for the fuse
             ctx.fillRect(fuseX, fuseY, fuseWidth, fuseHeight);
-            
-            // (Optional: small spark at the tip of the fuse)
-            // ctx.fillStyle = 'yellow';
-            // ctx.fillRect(fuseX + fuseWidth/2 - 1, fuseY - 2, 2, 2);
+
+            // Add blinking spark:
+            if (Math.floor(Date.now() / 250) % 2 === 0) { // Blink state changes every 250ms
+                ctx.fillStyle = 'orange'; // Color of the spark
+                // fuseX, fuseY, fuseWidth are variables from the fuse drawing logic just above this new code.
+                // Ensure these variables are correctly scoped or accessed.
+                // Spark size, e.g., 3x3 pixels.
+                const sparkSize = 3;
+                // Position the spark at the top-center of the fuse stem.
+                ctx.fillRect(fuseX + fuseWidth / 2 - sparkSize / 2, fuseY - sparkSize / 2, sparkSize, sparkSize);
+            }
 
         } else if (obj.type === "powerup_shield") {
-            const centerX = obj.x + obj.width / 2;
-            const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2; 
+            ctx.fillStyle = obj.color; // POWERUP_SHIELD_COLOR (Cyan)
+            ctx.beginPath();
+            // Top-left corner of the bounding box
+            ctx.moveTo(obj.x, obj.y);
+            // Top-right corner
+            ctx.lineTo(obj.x + obj.width, obj.y);
+            // Bottom-right point of the shield's "shoulders"
+            ctx.lineTo(obj.x + obj.width, obj.y + obj.height * 0.65);
+            // Tip of the shield (bottom center)
+            ctx.lineTo(obj.x + obj.width / 2, obj.y + obj.height);
+            // Bottom-left point of the shield's "shoulders"
+            ctx.lineTo(obj.x, obj.y + obj.height * 0.65);
+            // Close path back to top-left
+            ctx.closePath();
+            ctx.fill();
+        } else if (obj.type === "powerup_autofire") {
+            ctx.fillStyle = obj.color; // POWERUP_AUTOFIRE_COLOR (Orange)
 
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
-            ctx.fillStyle = obj.color; // Should be POWERUP_SHIELD_COLOR (Cyan)
-            ctx.fill();
-            ctx.closePath();
-        } else if (obj.type === "powerup_autofire") { // <<< ADD THIS BLOCK
+            const iconCount = 3;
+            // Make icons slightly thinner than a direct division by 3 to allow spacing
+            const iconWidth = obj.width / 4.5;
+            const iconHeight = obj.height * 0.65; // Make them clearly taller than wide
+
+            // Calculate total width occupied by icons and spaces to center the group
+            const totalIconsWidth = iconCount * iconWidth;
+            // Aim for roughly iconWidth / 2 as spacing between icons
+            const spaceBetweenIcons = iconWidth / 2.5;
+            const totalGroupWidth = totalIconsWidth + (iconCount - 1) * spaceBetweenIcons;
+
+            const startXOffset = (obj.width - totalGroupWidth) / 2; // Offset from obj.x to center the group
+            const startY = obj.y + (obj.height - iconHeight) / 2;    // Offset from obj.y to center vertically
+
+            for (let i = 0; i < iconCount; i++) {
+                const currentX = obj.x + startXOffset + i * (iconWidth + spaceBetweenIcons);
+                ctx.fillRect(currentX, startY, iconWidth, iconHeight);
+            }
+        } else if (obj.type === "powerup_dualbarrel") {
             const centerX = obj.x + obj.width / 2;
             const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2; 
-    
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
-            ctx.fillStyle = obj.color; // Should be POWERUP_AUTOFIRE_COLOR (Orange)
-            ctx.fill();
-            ctx.closePath();
-        } else if (obj.type === "powerup_dualbarrel") { // <<< ADD THIS BLOCK
-            const centerX = obj.x + obj.width / 2;
-            const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2; 
-    
+            const radius = obj.width / 2;
+
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
             ctx.fillStyle = obj.color; // Should be POWERUP_DUALBARREL_COLOR (Green)
@@ -657,8 +681,8 @@ function updateAndDrawFallingObjects(ctx) {
         } else if (obj.type === "powerup_explosive") { // <<< ADD THIS BLOCK
             const centerX = obj.x + obj.width / 2;
             const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2; 
-    
+            const radius = obj.width / 2;
+
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
             ctx.fillStyle = obj.color; // Should be POWERUP_EXPLOSIVE_COLOR
@@ -672,66 +696,66 @@ function updateAndDrawFallingObjects(ctx) {
 
         // Player Collision Logic
         const playerVisualTopY = player.y - player.height - player.barrelHeight;
-        const playerVisualBottomY = player.y; 
+        const playerVisualBottomY = player.y;
 
         if (obj.type === "bomb") {
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
-                obj.y < playerVisualBottomY && 
-                obj.y + obj.height > playerVisualTopY) { 
+                obj.y < playerVisualBottomY &&
+                obj.y + obj.height > playerVisualTopY) {
 
                 if (!player.isInvincible) { // Player is NOT invincible
                     const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
                     createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
-                    
+
                     gameState = "freezeFrame";
                     freezeFrameUntil = Date.now() + 1000;
                     nextStateAfterFreeze = "gameOver";
                     gameWon = false;
-                    
-                    fallingObjects.splice(i, 1); 
-                    continue; 
+
+                    fallingObjects.splice(i, 1);
+                    continue;
                 } else { // Player IS invincible
-                    fallingObjects.splice(i, 1); 
+                    fallingObjects.splice(i, 1);
                     // console.log("Player invincible, bomb destroyed by shield!");
                     continue;
                 }
             }
-        } else if (obj.type === "powerup_shield") { 
+        } else if (obj.type === "powerup_shield") {
             // const playerVisualTopY = player.y - player.height - player.barrelHeight; // Already defined above
             // const playerVisualBottomY = player.y; // Already defined above
 
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
-                obj.y < playerVisualBottomY &&      
-                obj.y + obj.height > playerVisualTopY) { 
-            
+                obj.y < playerVisualBottomY &&
+                obj.y + obj.height > playerVisualTopY) {
+
                 player.isInvincible = true;
                 player.invincibilityTimer = INVINCIBILITY_DURATION_FRAMES;
                 powerupMessage = "Shield Activated!";
                 powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
                 // console.log("Shield Activated!");
 
-                fallingObjects.splice(i, 1); 
-                continue; 
+                fallingObjects.splice(i, 1);
+                continue;
             }
         } else if (obj.type === "powerup_autofire") {
             // AABB collision check with player (copy from powerup_shield)
             const playerVisualTopY = player.y - player.height - player.barrelHeight;
             const playerVisualBottomY = player.y;
-    
+
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&
                 obj.y + obj.height > playerVisualTopY) {
-                
+
                 player.hasAutoFire = true;
                 player.autoFireTimer = AUTOFIRE_DURATION_FRAMES;
                 player.autoFireNextShotTimer = 0; // Allow immediate first shot if fire is held
-    
+
                 powerupMessage = "Auto Fire On!"; // Or "Rapid Fire!"
                 powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
-                
+
                 fallingObjects.splice(i, 1); // Remove the power-up
                 continue; // Skip to the next falling object
             }
@@ -739,18 +763,18 @@ function updateAndDrawFallingObjects(ctx) {
             // AABB collision check with player (copy from other powerup types)
             const playerVisualTopY = player.y - player.height - player.barrelHeight;
             const playerVisualBottomY = player.y;
-    
+
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&
                 obj.y + obj.height > playerVisualTopY) {
-                
+
                 player.hasDualBarrel = true;
                 player.dualBarrelTimer = DUALBARREL_DURATION_FRAMES;
-    
-                powerupMessage = "Dual Barrel Active!"; 
+
+                powerupMessage = "Dual Barrel Active!";
                 powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
-                
+
                 fallingObjects.splice(i, 1); // Remove the power-up
                 continue; // Skip to the next falling object
             }
@@ -758,18 +782,18 @@ function updateAndDrawFallingObjects(ctx) {
             // AABB collision check with player (copy from other powerup types)
             const playerVisualTopY = player.y - player.height - player.barrelHeight;
             const playerVisualBottomY = player.y;
-    
+
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&
                 obj.y + obj.height > playerVisualTopY) {
-                
+
                 player.hasExplosiveBullets = true;
                 player.explosiveBulletsTimer = EXPLOSIVE_BULLETS_DURATION_FRAMES;
-    
-                powerupMessage = "Explosive Bullets!"; 
+
+                powerupMessage = "Explosive Bullets!";
                 powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
-                
+
                 fallingObjects.splice(i, 1); // Remove the power-up
                 continue; // Skip to the next falling object
             }
@@ -786,11 +810,11 @@ function resetPlayerPosition() {
     player.x = canvas.width / 2 - player.width / 2;
     let bottomMargin = 10;
     let osControlsHeight = 0;
-    if (onScreenControlsEnabled && typeof osLeftButton !== 'undefined' && osLeftButton.height > 0) { 
-         osControlsHeight = osLeftButton.height + osPadding; 
+    if (onScreenControlsEnabled && typeof osLeftButton !== 'undefined' && osLeftButton.height > 0) {
+         osControlsHeight = osLeftButton.height + osPadding;
     }
     player.y = canvas.height - bottomMargin - osControlsHeight;
-    
+
     player.isMovingLeftKeyboard = false; player.isMovingRightKeyboard = false;
     player.isMovingLeftTouch = false; player.isMovingRightTouch = false;
     player.isMovingLeftGamepad = false; player.isMovingRightGamepad = false;
@@ -811,21 +835,21 @@ function resetPlayerPosition() {
 
 function startGame(isContinuing = false) {
   if (!isContinuing) {
-    score = 0; 
-    currentLevel = 1; 
+    score = 0;
+    currentLevel = 1;
   }
-  highScore = parseInt(localStorage.getItem('spaceInvadersHighScore')) || 0; 
+  highScore = parseInt(localStorage.getItem('spaceInvadersHighScore')) || 0;
 
-  resetPlayerPosition(); 
-  
+  resetPlayerPosition();
+
   initializeEnemies(); // Uses currentLevel for difficulty
-  initializeBarriers(); 
-  
-  enemyBullets = []; 
-  bullets = []; 
+  initializeBarriers();
+
+  enemyBullets = [];
+  bullets = [];
   particles = []; // Clear existing particles
   fallingObjects = []; // Clear falling objects
-  gameWon = false; 
+  gameWon = false;
   // gameState = "playing"; // This will be set by the caller
 }
 
@@ -843,11 +867,11 @@ function drawScore(ctx) {
     ctx.fillStyle = "white";
     ctx.font = "16px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("Score: " + score, 10, 20); 
-    ctx.fillText("Level: " + currentLevel, 10, 40); 
+    ctx.fillText("Score: " + score, 10, 20);
+    ctx.fillText("Level: " + currentLevel, 10, 40);
     ctx.textAlign = "right";
-    ctx.fillText("High Score: " + highScore, canvas.width - 10, 20); 
-    ctx.textAlign = "left"; 
+    ctx.fillText("High Score: " + highScore, canvas.width - 10, 20);
+    ctx.textAlign = "left";
 }
 
 function drawPowerupMessage(ctx) {
@@ -856,13 +880,13 @@ function drawPowerupMessage(ctx) {
         ctx.font = "22px Arial";
         ctx.textAlign = "center";
         // Position it below the score/level display, e.g. score is at y=20, level y=40.
-        ctx.fillText(powerupMessage, canvas.width / 2, 70); 
+        ctx.fillText(powerupMessage, canvas.width / 2, 70);
         ctx.textAlign = "left"; // Reset textAlign
     }
 }
 
 function drawLevelCompleteMessage(ctx) {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; 
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "white";
     ctx.font = "30px Arial";
@@ -870,7 +894,7 @@ function drawLevelCompleteMessage(ctx) {
     ctx.fillText("Level " + (currentLevel -1) + " Complete!", canvas.width / 2, canvas.height / 2 - 20);
     ctx.font = "24px Arial";
     ctx.fillText("Ready for next wave?", canvas.width / 2, canvas.height / 2 + 20);
-    ctx.textAlign = "left"; 
+    ctx.textAlign = "left";
 
     const newButtonWidth = 280; // Increased width for padding
     // const buttonHeight = 50; // Standard button height is already globally defined
@@ -955,7 +979,7 @@ function drawSettingsScreen() {
     label: `On-Screen Controls: ${onScreenControlsEnabled ? "Enabled" : "Disabled"}`
   };
   drawButton(onScreenControlsToggleButton);
-  
+
   const backButtonWidth = 190;
   backButton = {
     x: (canvas.width - backButtonWidth) / 2,
@@ -980,7 +1004,7 @@ function drawOnScreenControls() {
 
 function handleGamepadInput() {
   let activeGamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-  
+
   player.isMovingLeftGamepad = false;
   player.isMovingRightGamepad = false;
 
@@ -996,7 +1020,7 @@ function handleGamepadInput() {
         player.isMovingRightGamepad = true;
       }
 
-      const fireButtonIndex = 0; 
+      const fireButtonIndex = 0;
       if (gp.buttons[fireButtonIndex] && gp.buttons[fireButtonIndex].pressed) {
         if (!player.isTryingToFireGamepad && !player.hasAutoFire) { // First press and not autofire
             playerShoot();
@@ -1042,12 +1066,12 @@ document.addEventListener('keyup', function(event) {
     player.isMovingLeftKeyboard = false;
   } else if (event.key === 'ArrowRight') {
     player.isMovingRightKeyboard = false;
-  } else if (event.code === 'Space') { 
+  } else if (event.code === 'Space') {
       player.isTryingToFireKeyboard = false;
   }
 });
 
-function getMousePos(canvasEl, event) { 
+function getMousePos(canvasEl, event) {
   const rect = canvasEl.getBoundingClientRect();
   return {
     x: event.clientX - rect.left,
@@ -1082,7 +1106,7 @@ canvas.addEventListener('click', function(event) {
     // Define continueButtonGameOver for hit detection, matching its drawn properties
     const continueButtonGameOver = {
         x: canvas.width / 2 - 100, // Consistent with drawing
-        y: canvas.height / 2 + 40, 
+        y: canvas.height / 2 + 40,
         width: 200,
         height: 40, // Consistent with drawing
         label: "Continue (Level " + currentLevel + ")" // Label doesn't affect hit box
@@ -1090,7 +1114,7 @@ canvas.addEventListener('click', function(event) {
     // gameOverToTitleButton is global, its y is updated in gameLoop for drawing
     // but for hit detection, we might need to use the updated y or ensure it's consistent
     // For simplicity, we assume gameOverToTitleButton properties are up-to-date via gameLoop drawing
-    
+
     if (isInside(mousePos, continueButtonGameOver)) {
         startGame(true); // Pass true for continue
         gameState = "playing";
@@ -1143,15 +1167,15 @@ canvas.addEventListener('touchstart', function(e) {
       e.preventDefault();
     }
   }
-}, { passive: false }); 
+}, { passive: false });
 
 canvas.addEventListener('touchend', function(e) {
   if (gameState === "playing" && onScreenControlsEnabled) {
     let actionTaken = false;
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
-      const touchPos = getMousePos(canvas, touch); 
-      
+      const touchPos = getMousePos(canvas, touch);
+
       // Check if the touch that ended was on the fire button
       if (isInside(touchPos, osFireButton)) {
           player.isTryingToFireTouch = false;
@@ -1160,7 +1184,7 @@ canvas.addEventListener('touchend', function(e) {
 
       if (player.isMovingLeftTouch && !isInside(touchPos, osRightButton)) {
         let leftStillPressed = false;
-        for (let j = 0; j < e.touches.length; j++) { 
+        for (let j = 0; j < e.touches.length; j++) {
             if (isInside(getMousePos(canvas, e.touches[j]), osLeftButton)) {
                 leftStillPressed = true;
                 break;
@@ -1169,7 +1193,7 @@ canvas.addEventListener('touchend', function(e) {
         if (!leftStillPressed) player.isMovingLeftTouch = false;
         actionTaken = true;
       }
-      
+
       if (player.isMovingRightTouch && !isInside(touchPos, osLeftButton)) {
         let rightStillPressed = false;
         for (let j = 0; j < e.touches.length; j++) {
@@ -1236,15 +1260,15 @@ function drawPlayer() {
   context.fillRect(barrelX, barrelY, barrelWidth, player.barrelHeight);
 
   if (player.isInvincible) {
-      const shieldColor = POWERUP_SHIELD_COLOR || '#00FFFF'; 
+      const shieldColor = POWERUP_SHIELD_COLOR || '#00FFFF';
 
       const baseAlpha = 0.5; // Was 0.4
       const pulseAmplitude = 0.2; // Amplitude remains 0.2, so range is 0.3 to 0.7
-      context.globalAlpha = baseAlpha + Math.sin(Date.now() / 150) * pulseAmplitude; 
+      context.globalAlpha = baseAlpha + Math.sin(Date.now() / 150) * pulseAmplitude;
 
       const visualCenterX = player.x + player.width / 2;
       const visualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
-      
+
       const shieldRadius = (player.width / 2) + 10; // Was +8
 
       context.fillStyle = shieldColor;
@@ -1269,8 +1293,8 @@ function updateAndDrawBullets() {
 
     if (bullet.y + bullet.height < 0) {
       bullets.splice(i, 1);
-      bulletRemovedThisFrame = true; 
-      continue; 
+      bulletRemovedThisFrame = true;
+      continue;
     }
 
     for (let j = enemies.length - 1; j >= 0; j--) {
@@ -1280,21 +1304,21 @@ function updateAndDrawBullets() {
           bullet.x + bullet.width > enemy.x &&
           bullet.y < enemy.y + enemy.height &&
           bullet.y + bullet.height > enemy.y) {
-        
+
             const impactX = bullet.x + bullet.width / 2;
-            const impactY = bullet.y; 
+            const impactY = bullet.y;
 
             enemy.alive = false;
-            score += 10; 
+            score += 10;
             createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color); // Standard enemy death
 
             if (player.hasExplosiveBullets) {
                 // Create the bullet's own explosion effect
-                createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 0.75); 
+                createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 0.75);
 
                 // AoE damage to other enemies
                 enemies.forEach(otherEnemy => {
-                    if (otherEnemy.alive && otherEnemy !== enemy) { 
+                    if (otherEnemy.alive && otherEnemy !== enemy) {
                         const dist = Math.sqrt(
                             Math.pow(otherEnemy.x + otherEnemy.width / 2 - impactX, 2) +
                             Math.pow(otherEnemy.y + otherEnemy.height / 2 - impactY, 2)
@@ -1308,7 +1332,7 @@ function updateAndDrawBullets() {
                 });
                 // AoE damage to barriers
                 barriers.forEach(barrier => {
-                    barrier.blocks.forEach(b => { 
+                    barrier.blocks.forEach(b => {
                         if (b.alive) {
                             const dist = Math.sqrt(
                                 Math.pow(b.x + b.width / 2 - impactX, 2) +
@@ -1323,12 +1347,12 @@ function updateAndDrawBullets() {
             }
             bullets.splice(i, 1);
             bulletRemovedThisFrame = true;
-            break; 
+            break;
       }
     }
 
     if (bulletRemovedThisFrame) {
-      continue; 
+      continue;
     }
 
     for (let b = 0; b < barriers.length; b++) {
@@ -1340,9 +1364,9 @@ function updateAndDrawBullets() {
               bullet.x + bullet.width > block.x &&
               bullet.y < block.y + block.height &&
               bullet.y + bullet.height > block.y) {
-            
+
             const impactX = bullet.x + bullet.width / 2;
-            const impactY = bullet.y; 
+            const impactY = bullet.y;
 
             block.alive = false; // Direct hit block
 
@@ -1364,7 +1388,7 @@ function updateAndDrawBullets() {
                     });
                 });
                 // AoE damage to enemies from barrier hit
-                enemies.forEach(e => { 
+                enemies.forEach(e => {
                     if (e.alive) {
                         const dist = Math.sqrt(
                             Math.pow(e.x + e.width / 2 - impactX, 2) +
@@ -1379,13 +1403,13 @@ function updateAndDrawBullets() {
                 });
             }
             bullets.splice(i, 1);
-            bulletRemovedThisFrame = true; 
-            break; 
+            bulletRemovedThisFrame = true;
+            break;
           }
         }
       }
       if (bulletRemovedThisFrame) {
-        break; 
+        break;
       }
     }
   }
@@ -1397,7 +1421,7 @@ function updateAndDrawEnemyBullets(ctx) {
     let bullet = enemyBullets[i];
     bullet.y += bullet.speed;
     ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
-    
+
     let bulletRemoved = false;
 
     const playerVisualTopY = player.y - player.height - player.barrelHeight;
@@ -1405,26 +1429,26 @@ function updateAndDrawEnemyBullets(ctx) {
 
     if (bullet.x < player.x + player.width &&
         bullet.x + bullet.width > player.x &&
-        bullet.y < playerVisualBottomY && 
-        bullet.y + bullet.height > playerVisualTopY) { 
-        
+        bullet.y < playerVisualBottomY &&
+        bullet.y + bullet.height > playerVisualTopY) {
+
         if (!player.isInvincible) { // Player is NOT invincible
             const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
             createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
 
             gameState = "freezeFrame";
-            freezeFrameUntil = Date.now() + 1000; 
+            freezeFrameUntil = Date.now() + 1000;
             nextStateAfterFreeze = "gameOver";
-            gameWon = false; 
-        } else { 
+            gameWon = false;
+        } else {
             // Player IS invincible. Optionally, add different feedback here later.
             // console.log("Player invincible, bullet absorbed by shield!");
         }
-        
+
         // Bullet is consumed regardless of invincibility.
-        enemyBullets.splice(i, 1); 
+        enemyBullets.splice(i, 1);
         bulletRemoved = true;
-        continue; 
+        continue;
     }
 
     if (!bulletRemoved) {
@@ -1438,16 +1462,16 @@ function updateAndDrawEnemyBullets(ctx) {
               bullet.y < block.y + block.height &&
               bullet.y + bullet.height > block.y) {
             block.alive = false;
-            enemyBullets.splice(i, 1); 
+            enemyBullets.splice(i, 1);
             bulletRemoved = true;
-            break; 
+            break;
           }
         }
-        if (bulletRemoved) break; 
+        if (bulletRemoved) break;
       }
     }
-    
-    if (!bulletRemoved && bullet.y > canvas.height) { 
+
+    if (!bulletRemoved && bullet.y > canvas.height) {
       enemyBullets.splice(i, 1);
     }
   }
@@ -1457,13 +1481,13 @@ function updateAndDrawEnemyBullets(ctx) {
 function drawAlien(enemy, ctx) {
   const currentPatternData = alienShapePatterns[enemy.type] || alienShapePatterns.type1;
   const shape = currentPatternData.pattern;
-  ctx.fillStyle = currentPatternData.color; 
+  ctx.fillStyle = currentPatternData.color;
 
-  const blockW = enemy.width / 8;  
-  const blockH = enemy.height / 5; 
+  const blockW = enemy.width / 8;
+  const blockH = enemy.height / 5;
 
-  for (let r = 0; r < shape.length; r++) { 
-    for (let c = 0; c < shape[r].length; c++) { 
+  for (let r = 0; r < shape.length; r++) {
+    for (let c = 0; c < shape[r].length; c++) {
       if (shape[r].charAt(c) === '1') {
         ctx.fillRect(enemy.x + c * blockW, enemy.y + r * blockH, blockW, blockH);
       }
@@ -1485,16 +1509,16 @@ function updateAndDrawEnemies() {
   });
   if (hitBoundary) {
     enemyDirection *= -1;
-    enemyMoveDown = enemyConfig.height / 2; 
+    enemyMoveDown = enemyConfig.height / 2;
   }
   if (enemyMoveDown > 0) {
-    const moveStep = 1; 
+    const moveStep = 1;
     enemies.forEach(enemy => { if (enemy.alive) enemy.y += moveStep; });
     enemyMoveDown -= moveStep;
   }
   enemies.forEach(enemy => {
     if (enemy.alive) {
-      drawAlien(enemy, context); 
+      drawAlien(enemy, context);
     }
   });
 }
@@ -1511,10 +1535,10 @@ function drawBarriers(ctx) {
 }
 
 function checkGameConditions() {
-  if (gameState !== "playing") return; 
+  if (gameState !== "playing") return;
 
   for (const enemy of enemies) {
-    if (enemy.alive && enemy.y + enemy.height >= player.y) { 
+    if (enemy.alive && enemy.y + enemy.height >= player.y) {
       gameState = "freezeFrame";
       freezeFrameUntil = Date.now() + 1000;
       nextStateAfterFreeze = "gameOver";
@@ -1594,9 +1618,9 @@ function gameLoop() {
         nextStateAfterFreeze = ""; // Reset for future use (good practice)
     }
   } else if (gameState === "playing") {
-    handleGamepadInput(); 
+    handleGamepadInput();
     handlePlayerFiring(); // Handle auto-fire logic
-    enemyShoot(); 
+    enemyShoot();
     spawnFallingObject();
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -1604,18 +1628,18 @@ function gameLoop() {
 
     updatePlayer();
     drawPlayer();
-    drawBarriers(context); 
-    
-    updateAndDrawBullets(); 
-    updateAndDrawEnemyBullets(context); 
+    drawBarriers(context);
+
+    updateAndDrawBullets();
+    updateAndDrawEnemyBullets(context);
     updateAndDrawEnemies();
     updateAndDrawParticles(context);
     updateAndDrawFallingObjects(context);
-    
-    checkGameConditions(); 
-    drawScore(context); 
+
+    checkGameConditions();
+    drawScore(context);
     drawPowerupMessage(context);
-    
+
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
     }
@@ -1627,16 +1651,16 @@ function gameLoop() {
     // Now draw the semi-transparent overlay for the game over specific messages
     context.fillStyle = 'rgba(0, 0, 0, 0.75)';
     context.fillRect(0, 0, canvas.width, canvas.height);
-    
-    drawScore(context); 
+
+    drawScore(context);
 
     context.font = '48px Arial';
-    context.fillStyle = gameWon ? 'gold' : 'red'; 
+    context.fillStyle = gameWon ? 'gold' : 'red';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    const message = gameWon ? 'You Win!' : 'Game Over!'; 
+    const message = gameWon ? 'You Win!' : 'Game Over!';
     context.fillText(message, canvas.width / 2, canvas.height / 2);
-    
+
     // Define and draw Continue button
     const continueButtonGameOver = {
         x: canvas.width / 2 - (340 / 2), // Centered
@@ -1657,11 +1681,59 @@ function gameLoop() {
     };
     drawButton(gameOverToTitleButton);
 
-    context.textAlign = "left"; 
+    context.textAlign = "left";
   }
-  
+
   requestAnimationFrame(gameLoop);
 }
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
