@@ -89,7 +89,7 @@ while running:
             player2_paddle.top = 0
         if player2_paddle.bottom > SCREEN_HEIGHT:
             player2_paddle.bottom = SCREEN_HEIGHT
-            
+
         # Ball Movement
         ball.x += ball_speed_x
         ball.y += ball_speed_y
@@ -97,7 +97,7 @@ while running:
         # Wall Bouncing
         if ball.top <= 0 or ball.bottom >= SCREEN_HEIGHT:
             ball_speed_y *= -1
-        
+
         # Scoring Logic & Ball Reset
         if ball.left <= 0: # Player 2 scores
             player2_score += 1
@@ -106,7 +106,7 @@ while running:
                 win_text_str = "Player 2 Wins!"
             else:
                 ball_speed_x, ball_speed_y = reset_ball(ball, SCREEN_WIDTH, SCREEN_HEIGHT, ball_speed_x)
-            
+
         if ball.right >= SCREEN_WIDTH: # Player 1 scores
             player1_score += 1
             if player1_score >= WINNING_SCORE:

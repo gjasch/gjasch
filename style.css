@@ -10,7 +10,7 @@ body {
 
 canvas {
     border: 1px solid white; /* Optional: adds a border around the canvas */
-    /* 
+    /*
        The canvas dimensions are set in JavaScript (800x600).
        If you wanted the canvas to be responsive, more complex CSS would be needed,
        but for this fixed-size game, direct styling is straightforward.

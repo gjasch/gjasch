@@ -16,6 +16,36 @@ const PADDLE_SPEED = 8;
 const COLOR_BACKGROUND = 'black';
 const COLOR_FOREGROUND = 'white';
 
+const STATE_TITLE_SCREEN = 'title_screen';
+const STATE_COUNTDOWN = 'countdown';
+const STATE_PLAYING = 'playing';
+const STATE_GAME_OVER = 'game_over';
+
+// Button area for Title Screen
+const startGameButton = {
+    x: CANVAS_WIDTH / 2 - 100, // Centered
+    y: CANVAS_HEIGHT / 2 + 50, // Below title
+    width: 200,
+    height: 50,
+    text: "Start Game"
+};
+
+const rematchButton = {
+    x: CANVAS_WIDTH / 2 - 155, // Positioned to the left of center
+    y: CANVAS_HEIGHT / 2 + 50,  // Below winner message
+    width: 150,
+    height: 50,
+    text: "Rematch"
+};
+
+const backToMenuButton = {
+    x: CANVAS_WIDTH / 2 + 5,   // Positioned to the right of center
+    y: CANVAS_HEIGHT / 2 + 50, // Below winner message
+    width: 150,
+    height: 50,
+    text: "Main Menu"
+};
+
 // Function to draw a rectangle (for paddles)
 function drawRect(x, y, width, height, color) {
     context.fillStyle = color;
@@ -65,14 +95,18 @@ let player1Score = 0;
 let player2Score = 0;
 
 const WINNING_SCORE = 5; // Or any score you prefer
-let gameOver = false;
-let winnerMessage = "";
-let gameStarted = false;
+let winnerMessage = ""; // Keep for game over message
+let currentGameState = STATE_TITLE_SCREEN;
+// let gameStarted = false; // REMOVED
+// let gameOver = false; // REMOVED
+
+let countdownValue = 3;
+let lastCountdownTime = 0; // To track time for 1-second intervals
 
 function resetBall() {
     ball.x = CANVAS_WIDTH / 2;
     ball.y = CANVAS_HEIGHT / 2;
-    
+
     // Randomize direction, ensure it's not too vertical
     let newSpeedX = ball.speed;
     if (Math.random() < 0.5) {
@@ -104,27 +138,8 @@ document.addEventListener('keydown', function(event) {
         player2Paddle.dy = PADDLE_SPEED;
     }
 
-    // Start game on Spacebar press
-    if (event.key === ' ' || event.code === 'Space') { // Check for ' ' or 'Space' for wider compatibility
-        if (!gameStarted && !gameOver) {
-            gameStarted = true;
-            resetBall(); // Serve the ball
-        }
-        // Optional: If game is over, space could also restart the game (future enhancement)
-        // else if (gameOver) {
-        //    // Reset scores, gameOver flag, gameStarted flag, etc.
-        //    player1Score = 0;
-        //    player2Score = 0;
-        //    gameOver = false;
-        //    gameStarted = false; // So it shows "Press Space to Start" again
-        //    winnerMessage = "";
-        //    // Ball will be static due to gameStarted = false
-        //    ball.dx = 0; 
-        //    ball.dy = 0;
-        //    ball.x = CANVAS_WIDTH / 2;
-        //    ball.y = CANVAS_HEIGHT / 2;
-        // }
-    }
+    // Start game on Spacebar press - REMOVED, will be handled by title screen UI
+    // if (event.key === ' ' || event.code === 'Space') { ... }
 });
 
 document.addEventListener('keyup', function(event) {
@@ -174,19 +189,19 @@ function updateBall() {
         ball.x + ball.radius > player1Paddle.x && // Ball's right edge is to the right of paddle's left edge
         ball.y - ball.radius < player1Paddle.y + player1Paddle.height && // Ball's top edge is above paddle's bottom edge
         ball.y + ball.radius > player1Paddle.y) { // Ball's bottom edge is below paddle's top edge
-        
+
         if (ball.dx < 0) { // Only reflect if ball is moving towards the paddle
             ball.dx *= -1;
             // Optional: Adjust ball position to prevent sticking
-            // ball.x = player1Paddle.x + player1Paddle.width + ball.radius; 
+            // ball.x = player1Paddle.x + player1Paddle.width + ball.radius;
         }
-    } 
+    }
     // Check collision with player 2 (right) paddle
     else if (ball.x + ball.radius > player2Paddle.x && // Ball's right edge is to the right of paddle's left edge
              ball.x - ball.radius < player2Paddle.x + player2Paddle.width && // Ball's left edge is to the left of paddle's right edge
              ball.y - ball.radius < player2Paddle.y + player2Paddle.height && // Ball's top edge is above paddle's bottom edge
              ball.y + ball.radius > player2Paddle.y) { // Ball's bottom edge is below paddle's top edge
-        
+
         if (ball.dx > 0) { // Only reflect if ball is moving towards the paddle
             ball.dx *= -1;
             // Optional: Adjust ball position to prevent sticking
@@ -201,73 +216,214 @@ function updateBall() {
 
     // Scoring logic
     if (ball.x - ball.radius < 0) { // Ball went past left paddle
-        if (!gameOver) { // Only score if game is not already over
-            player2Score++;
-            // console.log("Player 2 Score:", player2Score); // For debugging
-            if (player2Score >= WINNING_SCORE) {
-                gameOver = true;
-                winnerMessage = "Player 2 Wins!";
-            }
-            if (!gameOver) resetBall(); // Only reset if game is not over
+        player2Score++;
+        if (player2Score >= WINNING_SCORE) {
+            winnerMessage = "Player 2 Wins!";
+            currentGameState = STATE_GAME_OVER;
+        } else {
+            // Instead of immediate resetBall(), prepare for countdown:
+            ball.x = CANVAS_WIDTH / 2; // Reset ball position
+            ball.y = CANVAS_HEIGHT / 2;
+            ball.dx = 0;                 // Make ball static
+            ball.dy = 0;
+            countdownValue = 3;          // Reset countdown timer
+            lastCountdownTime = Date.now(); // Set new countdown start time
+            currentGameState = STATE_COUNTDOWN; // Transition to countdown state
         }
     } else if (ball.x + ball.radius > CANVAS_WIDTH) { // Ball went past right paddle
-        if (!gameOver) { // Only score if game is not already over
-            player1Score++;
-            // console.log("Player 1 Score:", player1Score); // For debugging
-            if (player1Score >= WINNING_SCORE) {
-                gameOver = true;
-                winnerMessage = "Player 1 Wins!";
-            }
-            if (!gameOver) resetBall(); // Only reset if game is not over
+        player1Score++;
+        if (player1Score >= WINNING_SCORE) {
+            winnerMessage = "Player 1 Wins!";
+            currentGameState = STATE_GAME_OVER;
+        } else {
+            // Instead of immediate resetBall(), prepare for countdown:
+            ball.x = CANVAS_WIDTH / 2; // Reset ball position
+            ball.y = CANVAS_HEIGHT / 2;
+            ball.dx = 0;                 // Make ball static
+            ball.dy = 0;
+            countdownValue = 3;          // Reset countdown timer
+            lastCountdownTime = Date.now(); // Set new countdown start time
+            currentGameState = STATE_COUNTDOWN; // Transition to countdown state
         }
     }
 }
 
 function gameLoop() {
-    // --- Update game state ---
-    if (gameStarted && !gameOver) { // Only update if game has started and is not over
-        updatePaddles();
-        updateBall();
-    }
-
-    // --- Render/Draw game elements (this part always runs) ---
-    // Clear canvas
+    // Clear canvas (common to all states, or move into each state's render logic if background changes)
     drawRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, COLOR_BACKGROUND);
 
-    // Draw player 1 paddle
-    drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
+    switch (currentGameState) {
+        case STATE_TITLE_SCREEN:
+            // --- Update logic for Title Screen (e.g., button hover) ---
+            // (To be implemented in next step)
 
-    // Draw player 2 paddle
-    drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
+            // --- Render logic for Title Screen ---
+            context.fillStyle = COLOR_FOREGROUND;
+            context.font = '70px Arial';
+            const titleText = "PONG";
+            let textWidth = context.measureText(titleText).width;
+            context.fillText(titleText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2 - 50);
 
-    // Draw ball (its position is only updated if gameStarted && !gameOver)
-    drawCircle(ball.x, ball.y, ball.radius, ball.color);
+            // Draw Start Game button
+            drawRect(startGameButton.x, startGameButton.y, startGameButton.width, startGameButton.height, COLOR_FOREGROUND); // Button background
+            context.fillStyle = COLOR_BACKGROUND; // Text color for button
+            context.font = '30px Arial';
+            textWidth = context.measureText(startGameButton.text).width;
+            context.fillText(startGameButton.text, startGameButton.x + (startGameButton.width - textWidth) / 2, startGameButton.y + startGameButton.height / 2 + 10); // Center text in button
+            break;
 
-    // Display Scores
-    context.fillStyle = COLOR_FOREGROUND;
-    context.font = '45px Arial';
-    context.fillText(player1Score.toString(), CANVAS_WIDTH / 4, 50);
-    const player2ScoreText = player2Score.toString();
-    context.fillText(player2ScoreText, CANVAS_WIDTH * 3 / 4 - 30, 50);
+        case STATE_COUNTDOWN:
+            // --- Update logic for Countdown ---
+            if (Date.now() - lastCountdownTime > 1000) { // 1 second has passed
+                countdownValue--;
+                lastCountdownTime = Date.now();
+            }
 
-    // Display "Press Space to Start" or Winner Message
-    if (!gameStarted && !gameOver) {
-        context.fillStyle = COLOR_FOREGROUND; // Use the standard foreground color
-        context.font = '40px Arial';         // Choose a suitable font size
-        const message = "Press Space to Start";
-        // Measure text to center it
-        const textWidth = context.measureText(message).width;
-        context.fillText(message, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
-    } else if (gameOver) {
-        context.fillStyle = COLOR_FOREGROUND;
-        context.font = '60px Arial'; // Larger font for winner message
-        const textWidth = context.measureText(winnerMessage).width;
-        context.fillText(winnerMessage, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
+            if (countdownValue <= 0) {
+                currentGameState = STATE_PLAYING;
+                resetBall(); // Serve the ball
+            }
+
+            // --- Render logic for Countdown ---
+            // (Draw static paddles and ball - already in placeholder, ensure it's correct)
+            drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
+            drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
+            drawCircle(ball.x, ball.y, ball.radius, ball.color); // Ball is static (dx=0, dy=0)
+
+            // Display countdown number
+            context.fillStyle = COLOR_FOREGROUND;
+            context.font = '80px Arial';
+            const countText = countdownValue > 0 ? countdownValue.toString() : "Go!"; // Or just blank for 0
+            if (countdownValue <=0) { // If we want "Go!" to not show once playing starts.
+                 // Do nothing here if we want it to disappear immediately when state changes
+            } else {
+                const textWidth = context.measureText(countText).width;
+                context.fillText(countText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
+            }
+            break;
+
+        case STATE_PLAYING:
+            // --- Update game state (paddles, ball) ---
+            updatePaddles(); // These functions should no longer check gameStarted/gameOver internally
+            updateBall();    // updateBall will need modification for scoring to transition to COUNTDOWN or GAME_OVER
+
+            // --- Render game elements ---
+            drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
+            drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
+            drawCircle(ball.x, ball.y, ball.radius, ball.color);
+
+            // Display Scores
+            context.fillStyle = COLOR_FOREGROUND;
+            context.font = '45px Arial';
+            context.fillText(player1Score.toString(), CANVAS_WIDTH / 4, 50);
+            const player2ScoreText = player2Score.toString();
+            context.fillText(player2ScoreText, CANVAS_WIDTH * 3 / 4 - 30, 50);
+            break;
+
+        case STATE_GAME_OVER:
+            // --- Update logic for Game Over (e.g., button hover) ---
+            // (To be implemented)
+
+            // --- Render Game Over Screen ---
+            drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color); // Show final state
+            drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
+            drawCircle(ball.x, ball.y, ball.radius, ball.color);
+
+            context.fillStyle = COLOR_FOREGROUND;
+            context.font = '45px Arial'; // Scores
+            context.fillText(player1Score.toString(), CANVAS_WIDTH / 4, 50);
+            const p2ScoreText = player2Score.toString(); // Renamed to avoid conflict with outer scope if any
+            context.fillText(p2ScoreText, CANVAS_WIDTH * 3 / 4 - 30, 50);
+
+            context.font = '60px Arial'; // Winner message
+            let textWidth = context.measureText(winnerMessage).width; // winnerMessage should still be set when transitioning to GAME_OVER
+            context.fillText(winnerMessage, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
+
+            // Draw Rematch button
+            drawRect(rematchButton.x, rematchButton.y, rematchButton.width, rematchButton.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND;
+            context.font = '25px Arial'; // Slightly smaller font for these buttons
+            textWidth = context.measureText(rematchButton.text).width;
+            context.fillText(rematchButton.text, rematchButton.x + (rematchButton.width - textWidth) / 2, rematchButton.y + rematchButton.height / 2 + 8);
+
+            // Draw Back to Menu button
+            drawRect(backToMenuButton.x, backToMenuButton.y, backToMenuButton.width, backToMenuButton.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND;
+            context.font = '25px Arial';
+            textWidth = context.measureText(backToMenuButton.text).width;
+            context.fillText(backToMenuButton.text, backToMenuButton.x + (backToMenuButton.width - textWidth) / 2, backToMenuButton.y + backToMenuButton.height / 2 + 8);
+            break;
     }
 
-    // --- Request next frame ---
     requestAnimationFrame(gameLoop);
 }
 
 // Start the game loop
 requestAnimationFrame(gameLoop);
+
+// Event Listener for Mouse Click (for buttons)
+canvas.addEventListener('mousedown', function(event) {
+    if (currentGameState === STATE_TITLE_SCREEN) {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        // Check if click is within the Start Game button
+        if (clickX >= startGameButton.x && clickX <= startGameButton.x + startGameButton.width &&
+            clickY >= startGameButton.y && clickY <= startGameButton.y + startGameButton.height) {
+
+            // Reset scores and other relevant game variables for a new game
+            player1Score = 0;
+            player2Score = 0;
+            winnerMessage = ""; // Clear any previous winner message
+
+            // Ensure ball is reset for the start of the game (static until countdown)
+            ball.x = CANVAS_WIDTH / 2;
+            ball.y = CANVAS_HEIGHT / 2;
+            ball.dx = 0;
+            ball.dy = 0;
+
+            countdownValue = 3; // Initialize countdown
+            lastCountdownTime = Date.now(); // Set start time for countdown
+            currentGameState = STATE_COUNTDOWN;
+        }
+    }
+    else if (currentGameState === STATE_GAME_OVER) {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        // Check Rematch button
+        if (clickX >= rematchButton.x && clickX <= rematchButton.x + rematchButton.width &&
+            clickY >= rematchButton.y && clickY <= rematchButton.y + rematchButton.height) {
+
+            player1Score = 0;
+            player2Score = 0;
+            winnerMessage = "";
+
+            ball.x = CANVAS_WIDTH / 2; // Center ball
+            ball.y = CANVAS_HEIGHT / 2;
+            ball.dx = 0;                // Make static for countdown
+            ball.dy = 0;
+
+            countdownValue = 3;
+            lastCountdownTime = Date.now();
+            currentGameState = STATE_COUNTDOWN;
+        }
+        // Check Back to Menu button
+        else if (clickX >= backToMenuButton.x && clickX <= backToMenuButton.x + backToMenuButton.width &&
+                 clickY >= backToMenuButton.y && clickY <= backToMenuButton.y + backToMenuButton.height) {
+
+            player1Score = 0; // Reset P1 score
+            player2Score = 0; // Reset P2 score
+            winnerMessage = ""; // Clear winner message
+
+            ball.x = CANVAS_WIDTH / 2; // Center ball
+            ball.y = CANVAS_HEIGHT / 2;
+            ball.dx = 0;                // Make static for title screen
+            ball.dy = 0;
+
+            currentGameState = STATE_TITLE_SCREEN;
+        }
+    }
+});
