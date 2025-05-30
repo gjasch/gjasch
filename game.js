@@ -11,6 +11,12 @@ let currentLevel = 1;
 // Starfield
 let stars = [];
 const NUM_STARS = 100; // Adjust for desired density
+const INVINCIBILITY_DURATION_FRAMES = 300; // Approx 5 seconds at 60FPS
+
+// UI Message
+let powerupMessage = "";
+let powerupMessageTimer = 0;
+const POWERUP_MESSAGE_DURATION_FRAMES = 120; // Approx 2 seconds at 60FPS
 
 // Particle System
 let particles = [];
@@ -27,10 +33,14 @@ const BOMB_WIDTH = 15;
 const BOMB_HEIGHT = 15;
 const BOMB_COLOR = '#800000'; // Maroon
 
-const POWERUP_GENERIC_WIDTH = 20;
-const POWERUP_GENERIC_HEIGHT = 20;
+const POWERUP_GENERIC_WIDTH = 20; // Can be reused for shield
+const POWERUP_GENERIC_HEIGHT = 20; // Can be reused for shield
 const POWERUP_GENERIC_COLOR = '#4A90E2'; // A distinct blue
 const FALLING_OBJECT_BASE_VY_POWERUP = 2; // Powerups fall slightly slower
+
+const POWERUP_SHIELD_WIDTH = 20;    
+const POWERUP_SHIELD_HEIGHT = 20;   
+const POWERUP_SHIELD_COLOR = '#00FFFF'; // Cyan
 
 // Player properties
 const player = {
@@ -46,7 +56,9 @@ const player = {
   isMovingLeftGamepad: false,
   isMovingRightGamepad: false,
   x: 0,
-  y: 0 // Represents the BOTTOM-MOST part of the cannon graphic
+  y: 0, // Represents the BOTTOM-MOST part of the cannon graphic
+  isInvincible: false,
+  invincibilityTimer: 0
 };
 
 // Enemy Configuration
@@ -372,14 +384,14 @@ function spawnFallingObject() {
                 color: BOMB_COLOR,
                 type: "bomb" 
             };
-        } else { // 30% chance for a generic power-up
-            objectType = "powerup_generic"; // Retained for potential direct use
+        } else { // 30% chance, now specifically for shield power-up
+            objectType = "powerup_shield"; 
             newObjectProps = {
-                vy: FALLING_OBJECT_BASE_VY_POWERUP,
-                width: POWERUP_GENERIC_WIDTH,
-                height: POWERUP_GENERIC_HEIGHT,
-                color: POWERUP_GENERIC_COLOR,
-                type: "powerup_generic"
+                vy: FALLING_OBJECT_BASE_VY_POWERUP, 
+                width: POWERUP_SHIELD_WIDTH,    
+                height: POWERUP_SHIELD_HEIGHT,  
+                color: POWERUP_SHIELD_COLOR,    
+                type: "powerup_shield"         
             };
         }
         
@@ -388,10 +400,10 @@ function spawnFallingObject() {
                 x: Math.random() * (canvas.width - newObjectProps.width),
                 y: 0 - newObjectProps.height, // Start just above screen
                 vx: 0,
-                vy: newObjectProps.vy,
-                width: newObjectProps.width,
-                height: newObjectProps.height,
-                type: newObjectProps.type, // Use type from newObjectProps
+                vy: newObjectProps.vy, 
+                width: newObjectProps.width, 
+                height: newObjectProps.height, 
+                type: newObjectProps.type, 
                 color: newObjectProps.color
             });
         }
@@ -524,8 +536,18 @@ function updateAndDrawFallingObjects(ctx) {
             // ctx.fillStyle = 'yellow';
             // ctx.fillRect(fuseX + fuseWidth/2 - 1, fuseY - 2, 2, 2);
 
+        } else if (obj.type === "powerup_shield") {
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2; 
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = obj.color; // Should be POWERUP_SHIELD_COLOR (Cyan)
+            ctx.fill();
+            ctx.closePath();
         } else {
-            // Default drawing for other types (future power-ups)
+            // Default drawing for any other future types
             ctx.fillStyle = obj.color;
             ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
         }
@@ -540,33 +562,39 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y < playerVisualBottomY && 
                 obj.y + obj.height > playerVisualTopY) { 
 
-                const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
-                createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
-                
-                gameState = "freezeFrame";
-                freezeFrameUntil = Date.now() + 1000;
-                nextStateAfterFreeze = "gameOver";
-                gameWon = false;
-                
-                fallingObjects.splice(i, 1); // Remove this bomb
-                // Since game state is changing, exiting early from this function or loop might be good
-                // For now, splice and the outer loop structure handles it.
-                // If multiple bombs could hit in one frame, this might need adjustment.
-                // However, freezeFrame will stop further updates this frame.
-                continue; // Skip off-screen check for this bomb as game is ending
+                if (!player.isInvincible) { // Player is NOT invincible
+                    const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
+                    createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
+                    
+                    gameState = "freezeFrame";
+                    freezeFrameUntil = Date.now() + 1000;
+                    nextStateAfterFreeze = "gameOver";
+                    gameWon = false;
+                    
+                    fallingObjects.splice(i, 1); 
+                    continue; 
+                } else { // Player IS invincible
+                    fallingObjects.splice(i, 1); 
+                    // console.log("Player invincible, bomb destroyed by shield!");
+                    continue;
+                }
             }
-        } else if (obj.type === "powerup_generic") {
-            const playerVisualTopY = player.y - player.height - player.barrelHeight;
-            const playerVisualBottomY = player.y; 
+        } else if (obj.type === "powerup_shield") { 
+            // const playerVisualTopY = player.y - player.height - player.barrelHeight; // Already defined above
+            // const playerVisualBottomY = player.y; // Already defined above
 
             if (obj.x < player.x + player.width &&
                 obj.x + obj.width > player.x &&
                 obj.y < playerVisualBottomY &&      
                 obj.y + obj.height > playerVisualTopY) { 
             
-                // Power-up collected
+                player.isInvincible = true;
+                player.invincibilityTimer = INVINCIBILITY_DURATION_FRAMES;
+                powerupMessage = "Shield Activated!";
+                powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
+                // console.log("Shield Activated!");
+
                 fallingObjects.splice(i, 1); 
-                // console.log("Power-up collected (placeholder)"); 
                 continue; 
             }
         }
@@ -590,6 +618,8 @@ function resetPlayerPosition() {
     player.isMovingLeftKeyboard = false; player.isMovingRightKeyboard = false;
     player.isMovingLeftTouch = false; player.isMovingRightTouch = false;
     player.isMovingLeftGamepad = false; player.isMovingRightGamepad = false;
+    player.isInvincible = false;
+    player.invincibilityTimer = 0;
 }
 
 
@@ -632,6 +662,17 @@ function drawScore(ctx) {
     ctx.textAlign = "right";
     ctx.fillText("High Score: " + highScore, canvas.width - 10, 20); 
     ctx.textAlign = "left"; 
+}
+
+function drawPowerupMessage(ctx) {
+    if (powerupMessage !== "") {
+        ctx.fillStyle = "yellow"; // Make it stand out, e.g., yellow
+        ctx.font = "22px Arial";
+        ctx.textAlign = "center";
+        // Position it below the score/level display, e.g. score is at y=20, level y=40.
+        ctx.fillText(powerupMessage, canvas.width / 2, 70); 
+        ctx.textAlign = "left"; // Reset textAlign
+    }
 }
 
 function drawLevelCompleteMessage(ctx) {
@@ -933,6 +974,13 @@ canvas.addEventListener('touchend', function(e) {
 
 // --- Helper functions for gameLoop "playing" state ---
 function updatePlayer() {
+  if (player.isInvincible) {
+    player.invincibilityTimer--;
+    if (player.invincibilityTimer <= 0) {
+        player.isInvincible = false;
+        // No need to reset timer to 0 here, it's done or implicitly handled
+    }
+  }
   if (player.isMovingLeftKeyboard || player.isMovingLeftTouch || player.isMovingLeftGamepad) player.x -= player.speed;
   if (player.isMovingRightKeyboard || player.isMovingRightTouch || player.isMovingRightGamepad) player.x += player.speed;
 
@@ -947,6 +995,27 @@ function drawPlayer() {
   const barrelX = player.x + (player.width / 2) - (barrelWidth / 2);
   const barrelY = player.y - player.height - player.barrelHeight;
   context.fillRect(barrelX, barrelY, barrelWidth, player.barrelHeight);
+
+  if (player.isInvincible) {
+      const shieldColor = POWERUP_SHIELD_COLOR || '#00FFFF'; 
+
+      const baseAlpha = 0.4;
+      const pulseAmplitude = 0.2;
+      context.globalAlpha = baseAlpha + Math.sin(Date.now() / 150) * pulseAmplitude; 
+
+      const visualCenterX = player.x + player.width / 2;
+      const visualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
+      
+      const shieldRadius = (player.width / 2) + 8; 
+
+      context.fillStyle = shieldColor;
+      context.beginPath();
+      context.arc(visualCenterX, visualCenterY, shieldRadius, 0, Math.PI * 2, false);
+      context.fill();
+      context.closePath();
+
+      context.globalAlpha = 1.0;
+  }
 }
 
 function updateAndDrawBullets() {
@@ -1030,20 +1099,24 @@ function updateAndDrawEnemyBullets(ctx) {
         bullet.x + bullet.width > player.x &&
         bullet.y < playerVisualBottomY && 
         bullet.y + bullet.height > playerVisualTopY) { 
-      
-      // Calculate visual center Y of the player cannon for the explosion origin
-      // player.y is the bottom of the base. player.height is base height. player.barrelHeight is barrel height.
-      const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
-      createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
+        
+        if (!player.isInvincible) { // Player is NOT invincible
+            const playerVisualCenterY = player.y - (player.height / 2) - (player.barrelHeight / 2);
+            createExplosion(player.x + player.width / 2, playerVisualCenterY, player.color);
 
-      gameState = "freezeFrame";
-      freezeFrameUntil = Date.now() + 1000; 
-      nextStateAfterFreeze = "gameOver";
-      gameWon = false; 
-      
-      enemyBullets.splice(i, 1); 
-      bulletRemoved = true;
-      continue; 
+            gameState = "freezeFrame";
+            freezeFrameUntil = Date.now() + 1000; 
+            nextStateAfterFreeze = "gameOver";
+            gameWon = false; 
+        } else { 
+            // Player IS invincible. Optionally, add different feedback here later.
+            // console.log("Player invincible, bullet absorbed by shield!");
+        }
+        
+        // Bullet is consumed regardless of invincibility.
+        enemyBullets.splice(i, 1); 
+        bulletRemoved = true;
+        continue; 
     }
 
     if (!bulletRemoved) {
@@ -1152,6 +1225,13 @@ function checkGameConditions() {
 
 // --- Game Loop ---
 function gameLoop() {
+  // At the start of gameLoop()
+  if (powerupMessageTimer > 0) {
+      powerupMessageTimer--;
+      if (powerupMessageTimer <= 0) {
+          powerupMessage = ""; // Clear message when timer expires
+      }
+  }
   if (gameState === "title") {
     drawTitleScreen();
   } else if (gameState === "settings") {
@@ -1225,6 +1305,7 @@ function gameLoop() {
     
     checkGameConditions(); 
     drawScore(context); 
+    drawPowerupMessage(context);
     
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
@@ -1275,3 +1356,51 @@ function gameLoop() {
 
 initializeStars(); // Call once before game starts
 gameLoop();
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
