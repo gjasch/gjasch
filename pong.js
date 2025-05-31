@@ -20,6 +20,7 @@ const STATE_TITLE_SCREEN = 'title_screen';
 const STATE_COUNTDOWN = 'countdown';
 const STATE_PLAYING = 'playing';
 const STATE_GAME_OVER = 'game_over';
+const STATE_PAUSED = 'paused';
 
 // Button area for Title Screen
 // const startGameButton = { ... }; // REMOVED/COMMENTED
@@ -51,6 +52,23 @@ const backToMenuButton = {
     x: CANVAS_WIDTH / 2 + 5,   // Positioned to the right of center
     y: CANVAS_HEIGHT / 2 + 50, // Below winner message
     width: 150,
+    height: 50,
+    text: "Main Menu"
+};
+
+// Pause Menu Buttons
+const resumeButton = {
+    x: CANVAS_WIDTH / 2 - 100, // Centered
+    y: CANVAS_HEIGHT / 2 + 0,  // Position below "Paused" text
+    width: 200,
+    height: 50,
+    text: "Resume"
+};
+
+const mainMenuButtonFromPause = { // Named differently to distinguish from game over's main menu if positions differ
+    x: CANVAS_WIDTH / 2 - 100,   // Centered
+    y: CANVAS_HEIGHT / 2 + 60,  // Below Resume button
+    width: 200,
     height: 50,
     text: "Main Menu"
 };
@@ -152,22 +170,34 @@ function resetBall() {
 document.addEventListener('keydown', function(event) {
     // Player 1 (Left Paddle) - W and S keys
     if (event.key === 'w' || event.key === 'W') {
-        player1Paddle.dy = -PADDLE_SPEED;
+        if (currentGameState === STATE_PLAYING) player1Paddle.dy = -PADDLE_SPEED;
     } else if (event.key === 's' || event.key === 'S') {
-        player1Paddle.dy = PADDLE_SPEED;
+        if (currentGameState === STATE_PLAYING) player1Paddle.dy = PADDLE_SPEED;
     }
 
-    // Player 2 (Right Paddle) - ArrowUp and ArrowDown keys - ONLY if two_player mode
+    // Player 2 (Right Paddle) - ArrowUp and ArrowDown keys - ONLY if two_player mode and playing
     if (gameMode === 'two_player') {
         if (event.key === 'ArrowUp') {
-            player2Paddle.dy = -PADDLE_SPEED;
+            if (currentGameState === STATE_PLAYING) player2Paddle.dy = -PADDLE_SPEED;
         } else if (event.key === 'ArrowDown') {
-            player2Paddle.dy = PADDLE_SPEED;
+            if (currentGameState === STATE_PLAYING) player2Paddle.dy = PADDLE_SPEED;
         }
     }
 
-    // Start game on Spacebar press - REMOVED, will be handled by title screen UI
-    // if (event.key === ' ' || event.code === 'Space') { ... }
+    // Escape Key for Pause/Resume
+    if (event.key === 'Escape') {
+        if (currentGameState === STATE_PLAYING) {
+            currentGameState = STATE_PAUSED;
+            // When pausing, ensure paddles stop moving if keys were held
+            player1Paddle.dy = 0;
+            player2Paddle.dy = 0; // Also stop P2, especially in 2-player mode
+        } else if (currentGameState === STATE_PAUSED) {
+            currentGameState = STATE_PLAYING;
+            // When resuming, reset AI's last reaction time so it doesn't make an instant move
+            // if it was just about to react before pausing.
+            aiLastReactionTime = Date.now();
+        }
+    }
 });
 
 document.addEventListener('keyup', function(event) {
@@ -398,7 +428,7 @@ function gameLoop() {
                  // Do nothing here if we want it to disappear immediately when state changes
             } else {
                 textWidth = context.measureText(countText).width; // Assignment
-                context.fillText(countText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2);
+                context.fillText(countText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2 - 80); // MOVED UP
             }
             break;
 
@@ -418,6 +448,41 @@ function gameLoop() {
             context.fillText(player1Score.toString(), CANVAS_WIDTH / 4, 50);
             const player2ScoreText = player2Score.toString();
             context.fillText(player2ScoreText, CANVAS_WIDTH * 3 / 4 - 30, 50);
+            break;
+
+        case STATE_PAUSED:
+            // --- Render logic for Pause Screen ---
+            // Render the underlying game state (paddles, ball, scores) - static
+            drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
+            drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
+            drawCircle(ball.x, ball.y, ball.radius, ball.color);
+
+            // Display Scores (copied from STATE_PLAYING for consistency)
+            context.fillStyle = COLOR_FOREGROUND;
+            context.font = '45px Arial';
+            context.fillText(player1Score.toString(), CANVAS_WIDTH / 4, 50);
+            context.fillText(player2Score.toString(), CANVAS_WIDTH * 3 / 4 - 30, 50);
+
+            // Overlay "Paused" message
+            context.fillStyle = COLOR_FOREGROUND;
+            context.font = '60px Arial';
+            const pausedText = "Paused";
+            textWidth = context.measureText(pausedText).width; // textWidth is declared at top of gameLoop
+            context.fillText(pausedText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2 - 80); // Position above buttons
+
+            // Draw Resume button
+            drawRect(resumeButton.x, resumeButton.y, resumeButton.width, resumeButton.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND; // Text color for button
+            context.font = '25px Arial';
+            textWidth = context.measureText(resumeButton.text).width;
+            context.fillText(resumeButton.text, resumeButton.x + (resumeButton.width - textWidth) / 2, resumeButton.y + resumeButton.height / 2 + 8);
+
+            // Draw Main Menu button (from pause)
+            drawRect(mainMenuButtonFromPause.x, mainMenuButtonFromPause.y, mainMenuButtonFromPause.width, mainMenuButtonFromPause.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND;
+            context.font = '25px Arial';
+            textWidth = context.measureText(mainMenuButtonFromPause.text).width;
+            context.fillText(mainMenuButtonFromPause.text, mainMenuButtonFromPause.x + (mainMenuButtonFromPause.width - textWidth) / 2, mainMenuButtonFromPause.y + mainMenuButtonFromPause.height / 2 + 8);
             break;
 
         case STATE_GAME_OVER:
@@ -532,6 +597,37 @@ canvas.addEventListener('mousedown', function(event) {
             ball.dx = 0;                // Make static for title screen
             ball.dy = 0;
 
+            currentGameState = STATE_TITLE_SCREEN;
+        }
+    }
+    else if (currentGameState === STATE_PAUSED) {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        // Check Resume button
+        if (clickX >= resumeButton.x && clickX <= resumeButton.x + resumeButton.width &&
+            clickY >= resumeButton.y && clickY <= resumeButton.y + resumeButton.height) {
+
+            currentGameState = STATE_PLAYING;
+            // When resuming, reset AI's last reaction time so it doesn't make an instant move
+            // if it was just about to react before pausing.
+            aiLastReactionTime = Date.now();
+        }
+        // Check Main Menu button (from pause)
+        else if (clickX >= mainMenuButtonFromPause.x && clickX <= mainMenuButtonFromPause.x + mainMenuButtonFromPause.width &&
+                 clickY >= mainMenuButtonFromPause.y && clickY <= mainMenuButtonFromPause.y + mainMenuButtonFromPause.height) {
+
+            player1Score = 0;
+            player2Score = 0;
+            winnerMessage = "";
+
+            ball.x = CANVAS_WIDTH / 2;
+            ball.y = CANVAS_HEIGHT / 2;
+            ball.dx = 0;
+            ball.dy = 0;
+            // No need to reset countdownValue here as title screen doesn't use it immediately.
+            // gameMode remains unchanged, will be re-selected on title screen.
             currentGameState = STATE_TITLE_SCREEN;
         }
     }
