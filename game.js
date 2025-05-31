@@ -417,7 +417,7 @@ function createExplosion(centerX, centerY, baseColor, numParticles = PARTICLES_P
             y: centerY,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            size: Math.random() * 2 + 3, // Size between 3 and 5
+            size: Math.random() * 2 + 3,
             color: baseColor,
             lifespan: lifespan,
             maxLifespan: lifespan
@@ -439,7 +439,6 @@ function spawnFallingObject() {
                 height: BOMB_HEIGHT,
                 color: BOMB_COLOR,
                 type: "bomb"
-                // Bombs don't have isResting/restingOnBlock
             };
         } else {
             const availablePowerupTypes = ["powerup_shield", "powerup_autofire", "powerup_dualbarrel", "powerup_explosive"];
@@ -452,9 +451,7 @@ function spawnFallingObject() {
                     width: POWERUP_SHIELD_WIDTH,
                     height: POWERUP_SHIELD_HEIGHT,
                     color: POWERUP_SHIELD_COLOR,
-                    type: "powerup_shield",
-                    isResting: false,
-                    restingOnBlock: null
+                    type: "powerup_shield"
                 };
             } else if (selectedPowerupType === "powerup_autofire") {
                 newObjectProps = {
@@ -462,9 +459,7 @@ function spawnFallingObject() {
                     width: POWERUP_AUTOFIRE_WIDTH,
                     height: POWERUP_AUTOFIRE_HEIGHT,
                     color: POWERUP_AUTOFIRE_COLOR,
-                    type: "powerup_autofire",
-                    isResting: false,
-                    restingOnBlock: null
+                    type: "powerup_autofire"
                 };
             } else if (selectedPowerupType === "powerup_dualbarrel") {
                 newObjectProps = {
@@ -472,9 +467,7 @@ function spawnFallingObject() {
                     width: POWERUP_DUALBARREL_WIDTH,
                     height: POWERUP_DUALBARREL_HEIGHT,
                     color: POWERUP_DUALBARREL_COLOR,
-                    type: "powerup_dualbarrel",
-                    isResting: false,
-                    restingOnBlock: null
+                    type: "powerup_dualbarrel"
                 };
             } else if (selectedPowerupType === "powerup_explosive") {
                 newObjectProps = {
@@ -482,9 +475,7 @@ function spawnFallingObject() {
                     width: POWERUP_EXPLOSIVE_WIDTH,
                     height: POWERUP_EXPLOSIVE_HEIGHT,
                     color: POWERUP_EXPLOSIVE_COLOR,
-                    type: "powerup_explosive",
-                    isResting: false,
-                    restingOnBlock: null
+                    type: "powerup_explosive"
                 };
             }
         }
@@ -498,9 +489,7 @@ function spawnFallingObject() {
                 width: newObjectProps.width,
                 height: newObjectProps.height,
                 type: newObjectProps.type,
-                color: newObjectProps.color,
-                isResting: newObjectProps.isResting,
-                restingOnBlock: newObjectProps.restingOnBlock
+                color: newObjectProps.color
             });
         }
     }
@@ -531,42 +520,21 @@ function updateAndDrawFallingObjects(ctx) {
         const obj = fallingObjects[i];
         let objectRemovedThisFrame = false;
 
-        // Physics update based on resting state
-        if (obj.type && obj.type.startsWith("powerup_") && obj.isResting) {
-            if (obj.restingOnBlock && !obj.restingOnBlock.alive) {
-                obj.isResting = false;
-                obj.restingOnBlock = null;
-                obj.vy = FALLING_OBJECT_BASE_VY_POWERUP * 0.5;
+        // Apply normal physics updates to all falling objects.
+        obj.x += obj.vx;
+        obj.y += obj.vy;
+        obj.vy += FALLING_OBJECT_GRAVITY;
 
-                obj.x += obj.vx;
-                obj.y += obj.vy;
-                obj.vy += FALLING_OBJECT_GRAVITY;
-            } else if (obj.restingOnBlock) {
-                obj.y = obj.restingOnBlock.y - obj.height;
-                obj.x = obj.restingOnBlock.x + (obj.restingOnBlock.width / 2) - (obj.width / 2);
-                obj.vx = 0;
-                obj.vy = 0;
-            } else {
-                obj.isResting = false;
-                obj.vy = FALLING_OBJECT_BASE_VY_POWERUP * 0.5;
-                obj.x += obj.vx;
-                obj.y += obj.vy;
-                obj.vy += FALLING_OBJECT_GRAVITY;
-            }
-        } else {
-            obj.x += obj.vx;
-            obj.y += obj.vy;
-            obj.vy += FALLING_OBJECT_GRAVITY;
-        }
-
-        if (!obj.isResting && obj.vx !== 0) {
-             obj.vx *= 0.90;
-             if (Math.abs(obj.vx) < 0.1) {
+        // Apply friction to horizontal sliding speed (if any).
+        // Since isResting is removed, this condition simplifies.
+        if (obj.vx !== 0) {
+             obj.vx *= 0.90; // 10% friction per frame
+             if (Math.abs(obj.vx) < 0.1) { // If speed is very low, stop horizontal movement
                  obj.vx = 0;
              }
         }
 
-        // Drawing logic (remains the same as before this specific subtask)
+        // Drawing logic
         if (obj.type === "bomb") {
             const centerX = obj.x + obj.width / 2;
             const centerY = obj.y + obj.height / 2;
@@ -607,8 +575,8 @@ function updateAndDrawFallingObjects(ctx) {
             const totalGroupWidth = totalIconsWidth + (iconCount - 1) * spaceBetweenIcons;
             const startXOffset = (obj.width - totalGroupWidth) / 2;
             const startY = obj.y + (obj.height - iconHeight) / 2;
-            for (let k = 0; k < iconCount; k++) { // Changed loop variable from i to k
-                const currentX = obj.x + startXOffset + k * (iconWidth + spaceBetweenIcons);
+            for (let k_icon = 0; k_icon < iconCount; k_icon++) {
+                const currentX = obj.x + startXOffset + k_icon * (iconWidth + spaceBetweenIcons);
                 ctx.fillRect(currentX, startY, iconWidth, iconHeight);
             }
         } else if (obj.type === "powerup_dualbarrel") {
@@ -620,8 +588,8 @@ function updateAndDrawFallingObjects(ctx) {
             const totalGroupWidth = (barrelCount * barrelIconWidth) + ((barrelCount - 1) * spacingBetweenBarrels);
             const startXOverall = obj.x + (obj.width - totalGroupWidth) / 2;
             const startY = obj.y + (obj.height - barrelIconHeight) / 2;
-            for (let k = 0; k < barrelCount; k++) { // Changed loop variable from i to k
-                const currentX = startXOverall + k * (barrelIconWidth + spacingBetweenBarrels);
+            for (let k_barrel = 0; k_barrel < barrelCount; k_barrel++) {
+                const currentX = startXOverall + k_barrel * (barrelIconWidth + spacingBetweenBarrels);
                 ctx.fillRect(currentX, startY, barrelIconWidth, barrelIconHeight);
             }
         } else if (obj.type === "powerup_explosive") {
@@ -642,7 +610,7 @@ function updateAndDrawFallingObjects(ctx) {
         let objectHitBarrierFlag = false;
         for (let b = 0; b < barriers.length; b++) {
             const barrier = barriers[b];
-            for (let k_block = 0; k_block < barrier.blocks.length; k_block++) { // Renamed k to k_block
+            for (let k_block = 0; k_block < barrier.blocks.length; k_block++) {
                 const block = barrier.blocks[k_block];
                 if (block.alive) {
                     if (obj.x < block.x + block.width &&
@@ -670,47 +638,28 @@ function updateAndDrawFallingObjects(ctx) {
                             });
                             fallingObjects.splice(i, 1);
                             objectRemovedThisFrame = true;
-                        } else if (obj.type.startsWith("powerup_")) {
-                            const objCenterX = obj.x + obj.width / 2;
-                            const objBottom = obj.y + obj.height;
-                            const blockTop = block.y;
-                            const blockCenterX = block.x + block.width / 2;
-                            const restYThreshold = block.y + block.height * 0.3;
-
-                            if (obj.vy >= -0.5 &&
-                                objBottom >= block.y && obj.y < restYThreshold &&
-                                obj.x + obj.width > block.x && obj.x < block.x + block.width) {
-                                const overlapY = (obj.y + obj.height) - block.y;
-                                if (overlapY > 0 && overlapY < obj.vy + block.height*0.5 && obj.vy >= 0) {
-                                    obj.isResting = true;
-                                    obj.restingOnBlock = block;
-                                    obj.vy = 0;
-                                    obj.vx = 0;
-                                    obj.y = block.y - obj.height;
-                                } else {
-                                    obj.isResting = false;
-                                    obj.vx = (objCenterX < blockCenterX ? -1.0 : 1.0) * 1.0;
-                                    obj.x = (objCenterX < blockCenterX ? block.x - obj.width - 1 : block.x + block.width + 1);
-                                }
-                            } else {
-                                obj.isResting = false;
-                                obj.vx = (objCenterX < blockCenterX ? -1.0 : 1.0) * 1.0;
-                                obj.x = (objCenterX < blockCenterX ? block.x - obj.width - 1 : block.x + block.width + 1);
-                            }
+                            // Power-ups no longer interact with barriers, so no "else if" here.
+                            // The objectHitBarrierFlag and break should only be for bombs.
+                            objectHitBarrierFlag = true;
+                            break;
                         }
-                        objectHitBarrierFlag = true;
-                        break;
+                        // Power-ups will now pass through barriers.
+                        // The objectHitBarrierFlag and break; were moved inside the bomb block.
                     }
                 }
             }
-            if (objectHitBarrierFlag) break;
+            // Only break from outer barrier loop if a bomb hit a barrier.
+            // Powerups should continue checking against other barriers (though they'll pass through all).
+            if (objectHitBarrierFlag && obj.type === "bomb") break;
         }
 
         if (objectRemovedThisFrame) {
+            // This continue is mostly for bombs that were removed.
+            // Powerups won't be removed by barriers anymore.
             continue;
         }
 
-        // Player Collision Logic (remains the same)
+        // Player Collision Logic
         const playerVisualTopY = player.y - player.height - player.barrelHeight;
         const playerVisualBottomY = player.y;
 
@@ -1008,7 +957,7 @@ function handleGamepadInput() {
         }
         player.isTryingToFireGamepad = true;
       } else {
-        player.isTryingToFireGamepad = false;
+        player.isMovingLeftGamepad = false; // Corrected: should be player.isTryingToFireGamepad
       }
     }
   }
@@ -1608,3 +1557,5 @@ function gameLoop() {
 
 initializeStars();
 gameLoop();
+
+```
