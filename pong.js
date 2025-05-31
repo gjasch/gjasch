@@ -124,7 +124,7 @@ const AI_MIN_ERROR_AT_IMPACT = PADDLE_HEIGHT * 0.1;
 // const AI_MISS_CHANCE = 0.05; // (Currently unused)
 
 // Enhanced AI Behavior Parameters
-const AI_REACTION_INTERVAL = 150;
+const AI_REACTION_INTERVAL = 220; // Milliseconds between AI reaction/prediction updates
 
 let winnerMessage = "";
 let currentGameState = STATE_TITLE_SCREEN;
@@ -224,18 +224,28 @@ function updatePaddles() {
             aiTargetY = predictedY + (Math.random() - 0.5) * 2 * currentErrorMargin;
             aiTargetY = Math.max(player2Paddle.height / 2, aiTargetY);
             aiTargetY = Math.min(CANVAS_HEIGHT - player2Paddle.height / 2, aiTargetY);
+
             aiLastReactionTime = Date.now();
+
+            // Now, set player2Paddle.dy based on the new aiTargetY
+            const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
+            const deadZone = PADDLE_HEIGHT * 0.1;
+
+            if (paddleCenterY < aiTargetY - deadZone) {
+                player2Paddle.dy = PADDLE_SPEED; // Decide to move down
+            } else if (paddleCenterY > aiTargetY + deadZone) {
+                player2Paddle.dy = -PADDLE_SPEED; // Decide to move up
+            } else {
+                player2Paddle.dy = 0; // Decide to stay still
+            }
         }
-        player2Paddle.dy = 0;
-        const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
-        const deadZone = PADDLE_HEIGHT * 0.1;
-        if (paddleCenterY < aiTargetY - deadZone) {
-            player2Paddle.dy = PADDLE_SPEED;
-        } else if (paddleCenterY > aiTargetY + deadZone) {
-            player2Paddle.dy = -PADDLE_SPEED;
-        }
+        // If it's not time to react, player2Paddle.dy keeps its value from the last reaction.
+
+        // Apply movement based on the current player2Paddle.dy (set during last reaction or initialized)
         player2Paddle.y += player2Paddle.dy;
+
     } else if (gameMode === 'two_player') {
+        // Player 2 paddle is controlled by keyboard
         player2Paddle.y += player2Paddle.dy;
     }
     if (player2Paddle.y < 0) {
