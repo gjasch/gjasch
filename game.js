@@ -25,11 +25,11 @@ const BOMB_BARRIER_EXPLOSION_COLOR = '#FFA500'; // Orange
 const BOMB_AOE_ON_BARRIER_RADIUS = 25;
 
 // UI Message
-let powerupMessage = "";
+// let powerupMessage = ""; // Removed
 // let powerupMessageTimer = 0; // Removed
 // const POWERUP_MESSAGE_DURATION_FRAMES = 120; // Removed
-let activePowerupNameForMessage = ""; // To identify which power-up's message and timer to show
-let activePowerupTimerDisplay = 0;   // To store the current frame count of the active power-up's timer for display
+// let activePowerupNameForMessage = ""; // Removed
+// let activePowerupTimerDisplay = 0;   // Removed
 
 // Particle System
 let particles = [];
@@ -696,9 +696,9 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y + obj.height > playerVisualTopY) {
                 player.isInvincible = true;
                 player.invincibilityTimer = INVINCIBILITY_DURATION_FRAMES;
-                powerupMessage = "Shield Active!";
-                activePowerupNameForMessage = "shield";
-                activePowerupTimerDisplay = player.invincibilityTimer;
+                // powerupMessage = "Shield Active!"; // DELETE
+                // activePowerupNameForMessage = "shield"; // DELETE
+                // activePowerupTimerDisplay = player.invincibilityTimer; // DELETE
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -710,9 +710,9 @@ function updateAndDrawFallingObjects(ctx) {
                 player.hasAutoFire = true;
                 player.autoFireTimer = AUTOFIRE_DURATION_FRAMES;
                 player.autoFireNextShotTimer = 0;
-                powerupMessage = "Auto Fire Active!";
-                activePowerupNameForMessage = "autofire";
-                activePowerupTimerDisplay = player.autoFireTimer;
+                // powerupMessage = "Auto Fire Active!"; // DELETE
+                // activePowerupNameForMessage = "autofire"; // DELETE
+                // activePowerupTimerDisplay = player.autoFireTimer; // DELETE
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -723,9 +723,9 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y + obj.height > playerVisualTopY) {
                 player.hasDualBarrel = true;
                 player.dualBarrelTimer = DUALBARREL_DURATION_FRAMES;
-                powerupMessage = "Dual Barrel Active!";
-                activePowerupNameForMessage = "dualbarrel";
-                activePowerupTimerDisplay = player.dualBarrelTimer;
+                // powerupMessage = "Dual Barrel Active!"; // DELETE
+                // activePowerupNameForMessage = "dualbarrel"; // DELETE
+                // activePowerupTimerDisplay = player.dualBarrelTimer; // DELETE
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -736,9 +736,9 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y + obj.height > playerVisualTopY) {
                 player.hasExplosiveBullets = true;
                 player.explosiveBulletsTimer = EXPLOSIVE_BULLETS_DURATION_FRAMES;
-                powerupMessage = "Explosive Bullets Active!";
-                activePowerupNameForMessage = "explosive";
-                activePowerupTimerDisplay = player.explosiveBulletsTimer;
+                // powerupMessage = "Explosive Bullets Active!"; // DELETE
+                // activePowerupNameForMessage = "explosive"; // DELETE
+                // activePowerupTimerDisplay = player.explosiveBulletsTimer; // DELETE
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -1171,28 +1171,14 @@ canvas.addEventListener('touchend', function(e) {
 function updatePlayer() {
   if (player.isInvincible) {
     player.invincibilityTimer--;
-    if (activePowerupNameForMessage === "shield") {
-        activePowerupTimerDisplay = player.invincibilityTimer;
-    }
     if (player.invincibilityTimer <= 0) {
         player.isInvincible = false;
-        if (activePowerupNameForMessage === "shield") {
-            powerupMessage = "";
-            activePowerupNameForMessage = "";
-        }
     }
   }
   if (player.hasAutoFire) {
       player.autoFireTimer--;
-      if (activePowerupNameForMessage === "autofire") {
-          activePowerupTimerDisplay = player.autoFireTimer;
-      }
       if (player.autoFireTimer <= 0) {
           player.hasAutoFire = false;
-          if (activePowerupNameForMessage === "autofire") {
-              powerupMessage = "";
-              activePowerupNameForMessage = "";
-          }
       }
   }
   if (player.autoFireNextShotTimer > 0) {
@@ -1200,28 +1186,14 @@ function updatePlayer() {
   }
   if (player.hasDualBarrel) {
       player.dualBarrelTimer--;
-      if (activePowerupNameForMessage === "dualbarrel") {
-          activePowerupTimerDisplay = player.dualBarrelTimer;
-      }
       if (player.dualBarrelTimer <= 0) {
           player.hasDualBarrel = false;
-          if (activePowerupNameForMessage === "dualbarrel") {
-              powerupMessage = "";
-              activePowerupNameForMessage = "";
-          }
       }
   }
   if (player.hasExplosiveBullets) {
       player.explosiveBulletsTimer--;
-      if (activePowerupNameForMessage === "explosive") {
-          activePowerupTimerDisplay = player.explosiveBulletsTimer;
-      }
       if (player.explosiveBulletsTimer <= 0) {
           player.hasExplosiveBullets = false;
-          if (activePowerupNameForMessage === "explosive") {
-              powerupMessage = "";
-              activePowerupNameForMessage = "";
-          }
       }
   }
   if (player.isMovingLeftKeyboard || player.isMovingLeftTouch || player.isMovingLeftGamepad) player.x -= player.speed;
@@ -1583,7 +1555,8 @@ function gameLoop() {
     updateAndDrawFallingObjects(context);
     checkGameConditions();
     drawScore(context);
-    drawPowerupMessage(context);
+    // drawPowerupMessage(context); // OLD CALL REMOVED
+    drawActivePowerupMessages(context); // NEW CALL ADDED
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
     }
@@ -1625,3 +1598,5 @@ initializeStars();
 gameLoop();
 
 ```
+
+[end of game.js]
