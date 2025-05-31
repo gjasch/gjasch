@@ -781,6 +781,9 @@ function startGame(isContinuing = false) {
   if (!isContinuing) {
     score = 0;
     currentLevel = 1;
+    powerupMessage = "";
+    activePowerupNameForMessage = "";
+    activePowerupTimerDisplay = 0;
   }
   highScore = parseInt(localStorage.getItem('spaceInvadersHighScore')) || 0;
 
@@ -1085,6 +1088,11 @@ canvas.addEventListener('click', function(event) {
         enemyBullets = [];
         particles = [];
         fallingObjects = [];
+
+        powerupMessage = "";
+        activePowerupNameForMessage = "";
+        activePowerupTimerDisplay = 0;
+
         gameState = "playing";
     }
   }
@@ -1615,3 +1623,5 @@ function gameLoop() {
 
 initializeStars();
 gameLoop();
+
+```
