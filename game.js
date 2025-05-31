@@ -49,12 +49,13 @@ const BOMB_COLOR = '#888888'; // Medium Gray
 const POWERUP_GENERIC_WIDTH = 20; // Can be reused for shield
 const POWERUP_GENERIC_HEIGHT = 20; // Can be reused for shield
 const POWERUP_GENERIC_COLOR = '#4A90E2'; // A distinct blue
-const FALLING_OBJECT_BASE_VY_POWERUP = 0.75; // Powerups fall slightly slower
+const FALLING_OBJECT_BASE_VY_POWERUP = 0.5; // Powerups fall slightly slower
 
 const POWERUP_SHIELD_WIDTH = 20;
 const POWERUP_SHIELD_HEIGHT = 20;
 const POWERUP_SHIELD_COLOR = '#00FFFF'; // Cyan
 const FALLING_OBJECT_GRAVITY = 0.04;
+const MAX_FALLING_SPEED_POWERUP = 2.5;
 
 const POWERUP_AUTOFIRE_WIDTH = 20;
 const POWERUP_AUTOFIRE_HEIGHT = 20;
@@ -526,6 +527,10 @@ function updateAndDrawFallingObjects(ctx) {
         obj.x += obj.vx;
         obj.y += obj.vy;
         obj.vy += FALLING_OBJECT_GRAVITY;
+
+        if (obj.type && obj.type.startsWith("powerup_")) {
+            obj.vy = Math.min(obj.vy, MAX_FALLING_SPEED_POWERUP);
+        }
 
         // Apply friction to horizontal sliding speed (if any).
         // Since isResting is removed, this condition simplifies.
