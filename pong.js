@@ -106,13 +106,23 @@ let player2Score = 0;
 const WINNING_SCORE = 5; // Or any score you prefer
 
 // AI Behavior Parameters
-const AI_REACTION_ZONE_X = CANVAS_WIDTH / 2; // Example: AI intensifies reaction when ball crosses half-court. (Currently unused, but good for future)
-const AI_TARGET_OFFSET_MAX = PADDLE_HEIGHT * 0.35; // Max random vertical offset AI aims for, relative to ball. e.g., 35% of paddle height.
+// const AI_REACTION_ZONE_X = CANVAS_WIDTH / 2; // Example: AI intensifies reaction when ball crosses half-court. (Currently unused)
+// const AI_TARGET_OFFSET_MAX = PADDLE_HEIGHT * 0.35; // REMOVED/REPLACED by PREDICTION_ERROR_MARGIN_MAX
+
+// Enhanced AI Behavior Parameters
+const AI_REACTION_INTERVAL = 150; // Milliseconds between AI reaction/prediction updates
+const AI_MAX_ERROR_AT_MAX_DISTANCE = PADDLE_HEIGHT * 0.6; // Max random error in Y prediction when ball is furthest
+const AI_MIN_ERROR_AT_IMPACT = PADDLE_HEIGHT * 0.1; // Min random error when ball is very close
 // const AI_MISS_CHANCE = 0.05; // Example: 5% chance AI 'messes up' on a given cycle. (Currently unused, for future refinement)
+
 
 let winnerMessage = ""; // Keep for game over message
 let currentGameState = STATE_TITLE_SCREEN;
 let gameMode = 'two_player'; // Default or set to null until chosen
+
+// Enhanced AI State Variables
+let aiLastReactionTime = 0;
+let aiTargetY = player2Paddle.y + player2Paddle.height / 2;
 // let gameStarted = false; // REMOVED
 // let gameOver = false; // REMOVED
 
@@ -190,31 +200,62 @@ function updatePaddles() {
 
     // Player 2 paddle movement
     if (gameMode === 'one_player' && currentGameState === STATE_PLAYING) {
-        // --- New AI controls Player 2 paddle ---
-        player2Paddle.dy = 0; // Default to no movement unless conditions are met
+        // --- New Predictive AI controls Player 2 paddle ---
 
-        if (ball.dx > 0) { // Only react if ball is moving towards AI (right paddle)
+        // Only update AI's target and reaction if enough time has passed and ball is coming
+        if (ball.dx > 0 && (Date.now() - aiLastReactionTime > AI_REACTION_INTERVAL)) {
+            // Predict ball's Y position at the paddle's x-plane
+            const dxToPaddle = player2Paddle.x - ball.x;
+            const timeToReachPaddle = dxToPaddle / ball.dx; // Avoid division by zero if ball.dx can be 0
+            let predictedY = ball.y + ball.dy * timeToReachPaddle;
 
-            // Calculate AI's target Y position with a random offset
-            let targetY = ball.y + (Math.random() - 0.5) * 2 * AI_TARGET_OFFSET_MAX;
-
-            // Define a small dead zone to prevent jittering when ball is aligned with paddle center
-            const deadZone = PADDLE_HEIGHT * 0.1; // e.g., 10% of paddle height
-
-            if (player2Paddle.y + player2Paddle.height / 2 < targetY - deadZone) {
-                // Paddle center is above the target zone (targetY - deadZone), need to move down
-                player2Paddle.dy = PADDLE_SPEED;
-            } else if (player2Paddle.y + player2Paddle.height / 2 > targetY + deadZone) {
-                // Paddle center is below the target zone (targetY + deadZone), need to move up
-                player2Paddle.dy = -PADDLE_SPEED;
+            // Simplified wall bounce prediction
+            if (predictedY < BALL_RADIUS) { // Check against BALL_RADIUS for edge
+                predictedY = BALL_RADIUS + (BALL_RADIUS - predictedY);
+            } else if (predictedY > CANVAS_HEIGHT - BALL_RADIUS) {
+                predictedY = (CANVAS_HEIGHT - BALL_RADIUS) - (predictedY - (CANVAS_HEIGHT - BALL_RADIUS));
             }
-            // If paddle center is within targetY +/- deadZone, dy remains 0 (no movement)
+            // Clamp predictedY to be within canvas ball center bounds, as a safeguard.
+            predictedY = Math.max(BALL_RADIUS, Math.min(CANVAS_HEIGHT - BALL_RADIUS, predictedY));
+
+            // --- DYNAMIC ERROR CALCULATION ---
+            // Normalize distance: 0 (at paddle) to 1 (far away at player 1 side)
+            // We use (player2Paddle.x - BALL_RADIUS) as the max distance for scaling for simplicity, assuming ball starts beyond P1 paddle
+            // A simpler approach for distance factor:
+            let distanceFactor = 0;
+            if (dxToPaddle > 0) { // only calculate if ball is to the left of paddle
+                 // Scale factor: 1 when ball is at x=0, 0 when ball is at paddle.x
+                 distanceFactor = Math.min(1, Math.max(0, dxToPaddle / player2Paddle.x));
+            }
+
+            const currentErrorMargin = AI_MIN_ERROR_AT_IMPACT +
+                                     (AI_MAX_ERROR_AT_MAX_DISTANCE - AI_MIN_ERROR_AT_IMPACT) * distanceFactor;
+
+            aiTargetY = predictedY + (Math.random() - 0.5) * 2 * currentErrorMargin;
+            // --- END DYNAMIC ERROR CALCULATION ---
+
+            // Clamp aiTargetY to where paddle center can realistically be
+            aiTargetY = Math.max(player2Paddle.height / 2, aiTargetY);
+            aiTargetY = Math.min(CANVAS_HEIGHT - player2Paddle.height / 2, aiTargetY);
+
+            aiLastReactionTime = Date.now();
         }
-        // Apply movement based on calculated dy
+
+        // Move paddle towards the current aiTargetY
+        player2Paddle.dy = 0; // Default to no movement
+        const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
+        const deadZone = PADDLE_HEIGHT * 0.1; // e.g., 10% of paddle height
+
+        if (paddleCenterY < aiTargetY - deadZone) {
+            player2Paddle.dy = PADDLE_SPEED; // Move down
+        } else if (paddleCenterY > aiTargetY + deadZone) {
+            player2Paddle.dy = -PADDLE_SPEED; // Move up
+        }
+
         player2Paddle.y += player2Paddle.dy;
 
     } else if (gameMode === 'two_player') {
-        // Player 2 paddle is controlled by keyboard (dy is set by event listeners)
+        // Player 2 paddle is controlled by keyboard
         player2Paddle.y += player2Paddle.dy;
     }
     // Else (e.g. if gameMode is null or other states like countdown/game_over for P2)
