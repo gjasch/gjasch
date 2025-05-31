@@ -781,9 +781,9 @@ function startGame(isContinuing = false) {
   if (!isContinuing) {
     score = 0;
     currentLevel = 1;
-    powerupMessage = "";
-    activePowerupNameForMessage = "";
-    activePowerupTimerDisplay = 0;
+    // powerupMessage = ""; // These are no longer global
+    // activePowerupNameForMessage = "";
+    // activePowerupTimerDisplay = 0;
   }
   highScore = parseInt(localStorage.getItem('spaceInvadersHighScore')) || 0;
 
@@ -820,34 +820,31 @@ function drawScore(ctx) {
     ctx.textAlign = "left";
 }
 
+// Old function - to be deleted
 function drawPowerupMessage(ctx) {
     if (powerupMessage !== "") { // Only draw if there's an active message
-        const mainMessageY = 60; // Y position for the first line of text
-        const lineHeight = 25;   // Approximate height for a line of text + spacing (for 1.5 lines apart)
-        const mainFontSize = 20; // Font size for the main message
-        const timerFontSize = 16; // Font size for the timer message
+        const mainMessageY = 60;
+        const lineHeight = 25;
+        const mainFontSize = 20;
+        const timerFontSize = 16;
 
-        // 1. Draw the main power-up message (e.g., "Shield Active!")
-        ctx.fillStyle = "yellow"; // Prominent color for the message
+        ctx.fillStyle = "yellow";
         ctx.font = mainFontSize + "px Arial";
         ctx.textAlign = "center";
         ctx.fillText(powerupMessage, canvas.width / 2, mainMessageY);
 
-        // 2. Calculate and draw the remaining time message
         if (activePowerupTimerDisplay > 0) {
-            // Convert frames to seconds, show one decimal place
             const remainingSeconds = (activePowerupTimerDisplay / 60).toFixed(1);
             const timerMessage = "(" + remainingSeconds + " seconds remaining)";
 
-            ctx.font = "italic " + timerFontSize + "px Arial"; // Smaller, italic font for timer
-            // Use the same fillStyle as main message or a slightly different one if desired (e.g., white)
-            // ctx.fillStyle = "white";
+            ctx.font = "italic " + timerFontSize + "px Arial";
             ctx.fillText(timerMessage, canvas.width / 2, mainMessageY + lineHeight);
         }
 
-        ctx.textAlign = "left"; // Reset textAlign to default for other draw functions
+        ctx.textAlign = "left";
     }
 }
+
 
 function drawLevelCompleteMessage(ctx) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -1089,9 +1086,9 @@ canvas.addEventListener('click', function(event) {
         particles = [];
         fallingObjects = [];
 
-        powerupMessage = "";
-        activePowerupNameForMessage = "";
-        activePowerupTimerDisplay = 0;
+        // powerupMessage = ""; // These are no longer global
+        // activePowerupNameForMessage = "";
+        // activePowerupTimerDisplay = 0;
 
         gameState = "playing";
     }
@@ -1596,3 +1593,9 @@ function gameLoop() {
 
 initializeStars();
 gameLoop();
+
+```
+
+[end of game.js]
+
+[end of game.js]
