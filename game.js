@@ -26,8 +26,10 @@ const BOMB_AOE_ON_BARRIER_RADIUS = 25;
 
 // UI Message
 let powerupMessage = "";
-let powerupMessageTimer = 0;
-const POWERUP_MESSAGE_DURATION_FRAMES = 120; // Approx 2 seconds at 60FPS
+// let powerupMessageTimer = 0; // Removed
+// const POWERUP_MESSAGE_DURATION_FRAMES = 120; // Removed
+let activePowerupNameForMessage = ""; // To identify which power-up's message and timer to show
+let activePowerupTimerDisplay = 0;   // To store the current frame count of the active power-up's timer for display
 
 // Particle System
 let particles = [];
@@ -689,8 +691,9 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y + obj.height > playerVisualTopY) {
                 player.isInvincible = true;
                 player.invincibilityTimer = INVINCIBILITY_DURATION_FRAMES;
-                powerupMessage = "Shield Activated!";
-                powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
+                powerupMessage = "Shield Active!";
+                activePowerupNameForMessage = "shield";
+                activePowerupTimerDisplay = player.invincibilityTimer;
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -702,8 +705,9 @@ function updateAndDrawFallingObjects(ctx) {
                 player.hasAutoFire = true;
                 player.autoFireTimer = AUTOFIRE_DURATION_FRAMES;
                 player.autoFireNextShotTimer = 0;
-                powerupMessage = "Auto Fire On!";
-                powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
+                powerupMessage = "Auto Fire Active!";
+                activePowerupNameForMessage = "autofire";
+                activePowerupTimerDisplay = player.autoFireTimer;
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -715,7 +719,8 @@ function updateAndDrawFallingObjects(ctx) {
                 player.hasDualBarrel = true;
                 player.dualBarrelTimer = DUALBARREL_DURATION_FRAMES;
                 powerupMessage = "Dual Barrel Active!";
-                powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
+                activePowerupNameForMessage = "dualbarrel";
+                activePowerupTimerDisplay = player.dualBarrelTimer;
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -726,8 +731,9 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y + obj.height > playerVisualTopY) {
                 player.hasExplosiveBullets = true;
                 player.explosiveBulletsTimer = EXPLOSIVE_BULLETS_DURATION_FRAMES;
-                powerupMessage = "Explosive Bullets!";
-                powerupMessageTimer = POWERUP_MESSAGE_DURATION_FRAMES;
+                powerupMessage = "Explosive Bullets Active!";
+                activePowerupNameForMessage = "explosive";
+                activePowerupTimerDisplay = player.explosiveBulletsTimer;
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -807,12 +813,31 @@ function drawScore(ctx) {
 }
 
 function drawPowerupMessage(ctx) {
-    if (powerupMessage !== "") {
-        ctx.fillStyle = "yellow";
-        ctx.font = "22px Arial";
+    if (powerupMessage !== "") { // Only draw if there's an active message
+        const mainMessageY = 60; // Y position for the first line of text
+        const lineHeight = 25;   // Approximate height for a line of text + spacing (for 1.5 lines apart)
+        const mainFontSize = 20; // Font size for the main message
+        const timerFontSize = 16; // Font size for the timer message
+
+        // 1. Draw the main power-up message (e.g., "Shield Active!")
+        ctx.fillStyle = "yellow"; // Prominent color for the message
+        ctx.font = mainFontSize + "px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(powerupMessage, canvas.width / 2, 70);
-        ctx.textAlign = "left";
+        ctx.fillText(powerupMessage, canvas.width / 2, mainMessageY);
+
+        // 2. Calculate and draw the remaining time message
+        if (activePowerupTimerDisplay > 0) {
+            // Convert frames to seconds, show one decimal place
+            const remainingSeconds = (activePowerupTimerDisplay / 60).toFixed(1);
+            const timerMessage = "(" + remainingSeconds + " seconds remaining)";
+
+            ctx.font = "italic " + timerFontSize + "px Arial"; // Smaller, italic font for timer
+            // Use the same fillStyle as main message or a slightly different one if desired (e.g., white)
+            // ctx.fillStyle = "white";
+            ctx.fillText(timerMessage, canvas.width / 2, mainMessageY + lineHeight);
+        }
+
+        ctx.textAlign = "left"; // Reset textAlign to default for other draw functions
     }
 }
 
@@ -1133,14 +1158,28 @@ canvas.addEventListener('touchend', function(e) {
 function updatePlayer() {
   if (player.isInvincible) {
     player.invincibilityTimer--;
+    if (activePowerupNameForMessage === "shield") {
+        activePowerupTimerDisplay = player.invincibilityTimer;
+    }
     if (player.invincibilityTimer <= 0) {
         player.isInvincible = false;
+        if (activePowerupNameForMessage === "shield") {
+            powerupMessage = "";
+            activePowerupNameForMessage = "";
+        }
     }
   }
   if (player.hasAutoFire) {
       player.autoFireTimer--;
+      if (activePowerupNameForMessage === "autofire") {
+          activePowerupTimerDisplay = player.autoFireTimer;
+      }
       if (player.autoFireTimer <= 0) {
           player.hasAutoFire = false;
+          if (activePowerupNameForMessage === "autofire") {
+              powerupMessage = "";
+              activePowerupNameForMessage = "";
+          }
       }
   }
   if (player.autoFireNextShotTimer > 0) {
@@ -1148,14 +1187,28 @@ function updatePlayer() {
   }
   if (player.hasDualBarrel) {
       player.dualBarrelTimer--;
+      if (activePowerupNameForMessage === "dualbarrel") {
+          activePowerupTimerDisplay = player.dualBarrelTimer;
+      }
       if (player.dualBarrelTimer <= 0) {
           player.hasDualBarrel = false;
+          if (activePowerupNameForMessage === "dualbarrel") {
+              powerupMessage = "";
+              activePowerupNameForMessage = "";
+          }
       }
   }
   if (player.hasExplosiveBullets) {
       player.explosiveBulletsTimer--;
+      if (activePowerupNameForMessage === "explosive") {
+          activePowerupTimerDisplay = player.explosiveBulletsTimer;
+      }
       if (player.explosiveBulletsTimer <= 0) {
           player.hasExplosiveBullets = false;
+          if (activePowerupNameForMessage === "explosive") {
+              powerupMessage = "";
+              activePowerupNameForMessage = "";
+          }
       }
   }
   if (player.isMovingLeftKeyboard || player.isMovingLeftTouch || player.isMovingLeftGamepad) player.x -= player.speed;
@@ -1453,12 +1506,12 @@ function checkGameConditions() {
 
 // --- Game Loop ---
 function gameLoop() {
-  if (powerupMessageTimer > 0) {
-      powerupMessageTimer--;
-      if (powerupMessageTimer <= 0) {
-          powerupMessage = "";
-      }
-  }
+  // if (powerupMessageTimer > 0) { // This whole block related to old timer is removed in next step
+  //     powerupMessageTimer--;
+  //     if (powerupMessageTimer <= 0) {
+  //         powerupMessage = "";
+  //     }
+  // }
   if (gameState === "title") {
     drawTitleScreen();
   } else if (gameState === "settings") {
@@ -1557,3 +1610,5 @@ function gameLoop() {
 
 initializeStars();
 gameLoop();
+
+```
