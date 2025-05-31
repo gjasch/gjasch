@@ -1557,5 +1557,3 @@ function gameLoop() {
 
 initializeStars();
 gameLoop();
-
-```
