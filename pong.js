@@ -119,7 +119,7 @@ const WINNING_SCORE = 5;
 
 // AI Behavior Parameters
 // const AI_REACTION_ZONE_X = CANVAS_WIDTH / 2; // (Currently unused)
-const AI_MAX_ERROR_AT_MAX_DISTANCE = PADDLE_HEIGHT * 0.6;
+const AI_MAX_ERROR_AT_MAX_DISTANCE = PADDLE_HEIGHT * 0.35; // Max random error in Y prediction when ball is furthest
 const AI_MIN_ERROR_AT_IMPACT = PADDLE_HEIGHT * 0.1;
 const AI_TARGET_CHANGE_THRESHOLD = PADDLE_HEIGHT * 0.20; // Min change in targetY (from current paddle center) for AI to adjust its dy
 // const AI_MISS_CHANCE = 0.05; // (Currently unused)
