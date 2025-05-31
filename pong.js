@@ -121,6 +121,7 @@ const WINNING_SCORE = 5;
 // const AI_REACTION_ZONE_X = CANVAS_WIDTH / 2; // (Currently unused)
 const AI_MAX_ERROR_AT_MAX_DISTANCE = PADDLE_HEIGHT * 0.6;
 const AI_MIN_ERROR_AT_IMPACT = PADDLE_HEIGHT * 0.1;
+const AI_TARGET_CHANGE_THRESHOLD = PADDLE_HEIGHT * 0.20; // Min change in targetY (from current paddle center) for AI to adjust its dy
 // const AI_MISS_CHANCE = 0.05; // (Currently unused)
 
 // Enhanced AI Behavior Parameters
@@ -221,27 +222,34 @@ function updatePaddles() {
             }
             const currentErrorMargin = AI_MIN_ERROR_AT_IMPACT +
                                      (AI_MAX_ERROR_AT_MAX_DISTANCE - AI_MIN_ERROR_AT_IMPACT) * distanceFactor;
-            aiTargetY = predictedY + (Math.random() - 0.5) * 2 * currentErrorMargin;
-            aiTargetY = Math.max(player2Paddle.height / 2, aiTargetY);
-            aiTargetY = Math.min(CANVAS_HEIGHT - player2Paddle.height / 2, aiTargetY);
+            const newPotentialAiTargetY = predictedY + (Math.random() - 0.5) * 2 * currentErrorMargin;
+
+            // Clamp this new potential target
+            const clampedNewPotentialAiTargetY = Math.max(player2Paddle.height / 2, Math.min(CANVAS_HEIGHT - player2Paddle.height / 2, newPotentialAiTargetY));
+
+            const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
+
+            // Only update the global aiTargetY if the new prediction is significantly different from the paddle's current center
+            if (Math.abs(clampedNewPotentialAiTargetY - paddleCenterY) > AI_TARGET_CHANGE_THRESHOLD) {
+                aiTargetY = clampedNewPotentialAiTargetY;
+            }
+            // Note: If not significantly different, aiTargetY (the committed target) remains unchanged from previous reaction.
 
             aiLastReactionTime = Date.now();
 
-            // Now, set player2Paddle.dy based on the new aiTargetY
-            const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
+            // Always decide dy based on the current (potentially unchanged) global aiTargetY
             const deadZone = PADDLE_HEIGHT * 0.1;
-
             if (paddleCenterY < aiTargetY - deadZone) {
-                player2Paddle.dy = PADDLE_SPEED; // Decide to move down
+                player2Paddle.dy = PADDLE_SPEED;
             } else if (paddleCenterY > aiTargetY + deadZone) {
-                player2Paddle.dy = -PADDLE_SPEED; // Decide to move up
+                player2Paddle.dy = -PADDLE_SPEED;
             } else {
-                player2Paddle.dy = 0; // Decide to stay still
+                player2Paddle.dy = 0;
             }
         }
         // If it's not time to react, player2Paddle.dy keeps its value from the last reaction.
 
-        // Apply movement based on the current player2Paddle.dy (set during last reaction or initialized)
+        // Apply movement based on the current player2Paddle.dy
         player2Paddle.y += player2Paddle.dy;
 
     } else if (gameMode === 'two_player') {
