@@ -21,6 +21,7 @@ const STATE_COUNTDOWN = 'countdown';
 const STATE_PLAYING = 'playing';
 const STATE_GAME_OVER = 'game_over';
 const STATE_PAUSED = 'paused';
+const STATE_SETTINGS = 'settings';
 
 // Button area for Title Screen
 const onePlayerStartButton = {
@@ -54,6 +55,14 @@ const backToMenuButton = {
     text: "Main Menu"
 };
 
+const settingsButton = {
+    x: CANVAS_WIDTH / 2 - 75, // Centered
+    y: CANVAS_HEIGHT / 2 + 120, // Below 1P/2P buttons
+    width: 150,
+    height: 40, // Slightly smaller height
+    text: "Settings"
+};
+
 // Pause Menu Buttons
 const resumeButton = {
     x: CANVAS_WIDTH / 2 - 100,
@@ -70,6 +79,62 @@ const mainMenuButtonFromPause = {
     text: "Main Menu"
 };
 
+// Settings Page Button Constants
+const toggleOnScreenControlsButton = {
+    x: CANVAS_WIDTH / 2 - 150,
+    y: CANVAS_HEIGHT / 2 - 25, // Position for the toggle button
+    width: 300,
+    height: 50,
+    textPrefix: "On-Screen Controls: " // Text will be dynamic
+};
+
+const settingsBackButton = {
+    x: CANVAS_WIDTH / 2 - 75,
+    y: CANVAS_HEIGHT / 2 + 50,  // Below the toggle button
+    width: 150,
+    height: 40,
+    text: "Back"
+};
+
+// On-Screen Control Button Definitions
+const OSC_BUTTON_WIDTH = 100;  // On-screen control button width
+const OSC_BUTTON_HEIGHT = 100; // On-screen control button height
+const OSC_BUTTON_MARGIN = 20;  // Margin from canvas edges
+
+// Player 1 On-Screen Controls (Left Side)
+const player1UpButton = {
+    x: OSC_BUTTON_MARGIN,
+    y: OSC_BUTTON_MARGIN, // Top-left area
+    width: OSC_BUTTON_WIDTH,
+    height: OSC_BUTTON_HEIGHT,
+    text: "P1 Up" // Text for drawing/debugging, can be an arrow later
+};
+
+const player1DownButton = {
+    x: OSC_BUTTON_MARGIN,
+    y: CANVAS_HEIGHT - OSC_BUTTON_HEIGHT - OSC_BUTTON_MARGIN, // Bottom-left area
+    width: OSC_BUTTON_WIDTH,
+    height: OSC_BUTTON_HEIGHT,
+    text: "P1 Down"
+};
+
+// Player 2 On-Screen Controls (Right Side)
+const player2UpButton = {
+    x: CANVAS_WIDTH - OSC_BUTTON_WIDTH - OSC_BUTTON_MARGIN,
+    y: OSC_BUTTON_MARGIN, // Top-right area
+    width: OSC_BUTTON_WIDTH,
+    height: OSC_BUTTON_HEIGHT,
+    text: "P2 Up"
+};
+
+const player2DownButton = {
+    x: CANVAS_WIDTH - OSC_BUTTON_WIDTH - OSC_BUTTON_MARGIN,
+    y: CANVAS_HEIGHT - OSC_BUTTON_HEIGHT - OSC_BUTTON_MARGIN, // Bottom-right area
+    width: OSC_BUTTON_WIDTH,
+    height: OSC_BUTTON_HEIGHT,
+    text: "P2 Down"
+};
+
 // Function to draw a rectangle (for paddles)
 function drawRect(x, y, width, height, color) {
     context.fillStyle = color;
@@ -83,6 +148,16 @@ function drawCircle(x, y, radius, color) {
     context.arc(x, y, radius, 0, Math.PI * 2, false);
     context.closePath();
     context.fill();
+}
+
+// Helper function to draw on-screen control buttons
+function drawOSCButton(button) {
+    context.fillStyle = 'rgba(128, 128, 128, 0.5)'; // Semi-transparent grey
+    context.fillRect(button.x, button.y, button.width, button.height);
+    context.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Semi-transparent white text
+    context.font = '20px Arial';
+    let localTextWidth = context.measureText(button.text).width; // Use local for helper
+    context.fillText(button.text, button.x + (button.width - localTextWidth) / 2, button.y + button.height / 2 + 7);
 }
 
 // Define Game Objects
@@ -130,6 +205,7 @@ const AI_REACTION_INTERVAL = 350; // Milliseconds between AI reaction/prediction
 let winnerMessage = "";
 let currentGameState = STATE_TITLE_SCREEN;
 let gameMode = 'two_player';
+let onScreenControlsEnabled = false;
 
 // Enhanced AI State Variables
 let aiLastReactionTime = 0;
@@ -336,6 +412,13 @@ function gameLoop() {
             context.font = '25px Arial';
             textWidth = context.measureText(twoPlayerStartButton.text).width;
             context.fillText(twoPlayerStartButton.text, twoPlayerStartButton.x + (twoPlayerStartButton.width - textWidth) / 2, twoPlayerStartButton.y + twoPlayerStartButton.height / 2 + 8);
+
+            // Draw Settings button
+            drawRect(settingsButton.x, settingsButton.y, settingsButton.width, settingsButton.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND;
+            context.font = '20px Arial'; // Adjust font size for button
+            textWidth = context.measureText(settingsButton.text).width; // textWidth should be declared at top of gameLoop
+            context.fillText(settingsButton.text, settingsButton.x + (settingsButton.width - textWidth) / 2, settingsButton.y + settingsButton.height / 2 + 7); // Adjust Y for text centering
             break;
         case STATE_COUNTDOWN:
             if (Date.now() - lastCountdownTime > 1000) {
@@ -356,17 +439,39 @@ function gameLoop() {
                 textWidth = context.measureText(countText).width;
                 context.fillText(countText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2 - 80);
             }
+
+            // Conditionally Render On-Screen Controls
+            if (onScreenControlsEnabled) {
+                drawOSCButton(player1UpButton);
+                drawOSCButton(player1DownButton);
+                if (gameMode === 'two_player') { // Only show P2 OSC buttons in 2-player mode
+                    drawOSCButton(player2UpButton);
+                    drawOSCButton(player2DownButton);
+                }
+            }
             break;
         case STATE_PLAYING:
             updatePaddles();
             updateBall();
+
             drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
             drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
             drawCircle(ball.x, ball.y, ball.radius, ball.color);
+
             context.fillStyle = COLOR_FOREGROUND;
             context.font = '45px Arial';
             context.fillText(player1Score.toString(), CANVAS_WIDTH / 4, 50);
             context.fillText(player2Score.toString(), CANVAS_WIDTH * 3 / 4 - 30, 50);
+
+            // Conditionally Render On-Screen Controls
+            if (onScreenControlsEnabled) {
+                drawOSCButton(player1UpButton);
+                drawOSCButton(player1DownButton);
+                if (gameMode === 'two_player') {
+                    drawOSCButton(player2UpButton);
+                    drawOSCButton(player2DownButton);
+                }
+            }
             break;
         case STATE_PAUSED:
             drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
@@ -392,6 +497,32 @@ function gameLoop() {
             textWidth = context.measureText(mainMenuButtonFromPause.text).width;
             context.fillText(mainMenuButtonFromPause.text, mainMenuButtonFromPause.x + (mainMenuButtonFromPause.width - textWidth) / 2, mainMenuButtonFromPause.y + mainMenuButtonFromPause.height / 2 + 8);
             break;
+
+        case STATE_SETTINGS:
+            // --- Render logic for Settings Screen ---
+            context.fillStyle = COLOR_FOREGROUND;
+            context.font = '50px Arial';
+            const settingsTitleText = "Settings";
+            textWidth = context.measureText(settingsTitleText).width; // textWidth declared at top of gameLoop
+            context.fillText(settingsTitleText, (CANVAS_WIDTH - textWidth) / 2, CANVAS_HEIGHT / 2 - 100); // Position title
+
+            // Draw Toggle On-Screen Controls button
+            // Text will show current state
+            const toggleButtonText = toggleOnScreenControlsButton.textPrefix + (onScreenControlsEnabled ? "Enabled" : "Disabled");
+            drawRect(toggleOnScreenControlsButton.x, toggleOnScreenControlsButton.y, toggleOnScreenControlsButton.width, toggleOnScreenControlsButton.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND;
+            context.font = '20px Arial'; // Font for button text
+            textWidth = context.measureText(toggleButtonText).width;
+            context.fillText(toggleButtonText, toggleOnScreenControlsButton.x + (toggleOnScreenControlsButton.width - textWidth) / 2, toggleOnScreenControlsButton.y + toggleOnScreenControlsButton.height / 2 + 7);
+
+            // Draw Back button
+            drawRect(settingsBackButton.x, settingsBackButton.y, settingsBackButton.width, settingsBackButton.height, COLOR_FOREGROUND);
+            context.fillStyle = COLOR_BACKGROUND;
+            // Font is already '20px Arial' from previous button if not changed
+            textWidth = context.measureText(settingsBackButton.text).width;
+            context.fillText(settingsBackButton.text, settingsBackButton.x + (settingsBackButton.width - textWidth) / 2, settingsBackButton.y + settingsBackButton.height / 2 + 7);
+            break;
+
         case STATE_GAME_OVER:
             drawRect(player1Paddle.x, player1Paddle.y, player1Paddle.width, player1Paddle.height, player1Paddle.color);
             drawRect(player2Paddle.x, player2Paddle.y, player2Paddle.width, player2Paddle.height, player2Paddle.color);
@@ -445,6 +576,12 @@ canvas.addEventListener('mousedown', function(event) {
             gameMode = 'two_player';
             initializeNewGame();
         }
+        // Check Settings button
+        else if (clickX >= settingsButton.x && clickX <= settingsButton.x + settingsButton.width &&
+                 clickY >= settingsButton.y && clickY <= settingsButton.y + settingsButton.height) {
+
+            currentGameState = STATE_SETTINGS;
+        }
     }
     else if (currentGameState === STATE_GAME_OVER) {
         const rect = canvas.getBoundingClientRect();
@@ -475,6 +612,25 @@ canvas.addEventListener('mousedown', function(event) {
             currentGameState = STATE_TITLE_SCREEN;
         }
     }
+    else if (currentGameState === STATE_SETTINGS) {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        // Check Toggle On-Screen Controls button
+        if (clickX >= toggleOnScreenControlsButton.x && clickX <= toggleOnScreenControlsButton.x + toggleOnScreenControlsButton.width &&
+            clickY >= toggleOnScreenControlsButton.y && clickY <= toggleOnScreenControlsButton.y + toggleOnScreenControlsButton.height) {
+
+            onScreenControlsEnabled = !onScreenControlsEnabled; // Flip the boolean setting
+            // The button's text will update automatically in the next render cycle due to its dynamic text generation.
+        }
+        // Check Back button
+        else if (clickX >= settingsBackButton.x && clickX <= settingsBackButton.x + settingsBackButton.width &&
+                 clickY >= settingsBackButton.y && clickY <= settingsBackButton.y + settingsBackButton.height) {
+
+            currentGameState = STATE_TITLE_SCREEN;
+        }
+    }
     else if (currentGameState === STATE_PAUSED) {
         const rect = canvas.getBoundingClientRect();
         const clickX = event.clientX - rect.left;
@@ -496,7 +652,60 @@ canvas.addEventListener('mousedown', function(event) {
             currentGameState = STATE_TITLE_SCREEN;
         }
     }
+    // On-Screen Controls Input Handling (for mousedown/touchstart)
+    // This should activate if game is playable (PLAYING or COUNTDOWN for pre-positioning)
+    if (onScreenControlsEnabled && (currentGameState === STATE_PLAYING || currentGameState === STATE_COUNTDOWN)) {
+        // Player 1 Controls
+        if (clickX >= player1UpButton.x && clickX <= player1UpButton.x + player1UpButton.width &&
+            clickY >= player1UpButton.y && clickY <= player1UpButton.y + player1UpButton.height) {
+            player1Paddle.dy = -PADDLE_SPEED;
+        } else if (clickX >= player1DownButton.x && clickX <= player1DownButton.x + player1DownButton.width &&
+                   clickY >= player1DownButton.y && clickY <= player1DownButton.y + player1DownButton.height) {
+            player1Paddle.dy = PADDLE_SPEED;
+        }
+
+        // Player 2 Controls (only if 2-player mode)
+        if (gameMode === 'two_player') {
+            if (clickX >= player2UpButton.x && clickX <= player2UpButton.x + player2UpButton.width &&
+                clickY >= player2UpButton.y && clickY <= player2UpButton.y + player2UpButton.height) {
+                player2Paddle.dy = -PADDLE_SPEED;
+            } else if (clickX >= player2DownButton.x && clickX <= player2DownButton.x + player2DownButton.width &&
+                       clickY >= player2DownButton.y && clickY <= player2DownButton.y + player2DownButton.height) {
+                player2Paddle.dy = PADDLE_SPEED;
+            }
+        }
+    }
 });
+
+canvas.addEventListener('mouseup', function(event) {
+    if (onScreenControlsEnabled) {
+        // Simplest approach: any mouseup stops all on-screen controlled paddle movement.
+        player1Paddle.dy = 0;
+        if (gameMode === 'two_player') { // Only affect P2 dy if it could have been moving via OSC
+            player2Paddle.dy = 0;
+        }
+    }
+});
+
+// Proxy touch events to mouse events for on-screen controls
+canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault(); // Prevent mouse event emulation and scrolling
+    if (e.touches.length > 0) {
+        const touch = e.touches[0]; // Get first touch point
+        const mouseEvent = new MouseEvent('mousedown', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent); // Dispatch a mousedown event
+    }
+}, { passive: false }); // passive: false to allow preventDefault
+
+canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    // Create a new MouseEvent, though clientX/Y might not be strictly needed for current mouseup logic
+    const mouseEvent = new MouseEvent('mouseup', {});
+    canvas.dispatchEvent(mouseEvent); // Dispatch a mouseup event
+}, { passive: false });
 
 // Start the game loop
 requestAnimationFrame(gameLoop);
