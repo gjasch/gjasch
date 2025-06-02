@@ -200,7 +200,7 @@ const AI_TARGET_CHANGE_THRESHOLD = PADDLE_HEIGHT * 0.00; // Min change in target
 // const AI_MISS_CHANCE = 0.05; // (Currently unused)
 
 // Enhanced AI Behavior Parameters
-const AI_REACTION_INTERVAL = 500; // Milliseconds between AI reaction/prediction updates
+const AI_REACTION_INTERVAL = 1000; // Milliseconds between AI reaction/prediction updates
 
 let winnerMessage = "";
 let currentGameState = STATE_TITLE_SCREEN;
