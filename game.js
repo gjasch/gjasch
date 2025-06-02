@@ -17,8 +17,8 @@ const AUTOFIRE_COOLDOWN_FRAMES = 5;  // Cooldown between auto-fired shots (e.g.,
 const DUALBARREL_DURATION_FRAMES = 480; // Approx 8 seconds at 60FPS
 const EXPLOSIVE_BULLETS_DURATION_FRAMES = 420; // Approx 7 seconds at 60FPS
 const EXPLOSION_RADIUS = 30; // Radius for AoE damage from explosive bullets
-const BULLET_EXPLOSION_PARTICLE_COUNT = 15; // Number of particles for a bullet's explosion
-const BULLET_EXPLOSION_COLOR = 'orange';   // Color of a bullet's own explosion particles
+const BULLET_EXPLOSION_PARTICLE_COUNT = 25; // Number of particles for a bullet's explosion
+const BULLET_EXPLOSION_COLOR = '#FF2200'; // Fiery Red
 
 const BOMB_BARRIER_EXPLOSION_PARTICLES = 20;
 const BOMB_BARRIER_EXPLOSION_COLOR = '#FFA500'; // Orange
@@ -355,6 +355,7 @@ function initializeBarriers() {
 
 function playerShoot() {
   const barrelTipY = player.y - player.height - player.barrelHeight;
+  const currentBulletColor = player.hasExplosiveBullets ? POWERUP_EXPLOSIVE_COLOR : bulletConfig.color;
 
   if (player.hasDualBarrel) {
     const spreadAmount = 10; // Pixels offset from center for each barrel
@@ -366,7 +367,7 @@ function playerShoot() {
       y: barrelTipY,
       width: bulletConfig.width,
       height: bulletConfig.height,
-      color: bulletConfig.color,
+      color: currentBulletColor, // MODIFIED
       speed: bulletConfig.speed
     });
 
@@ -376,7 +377,7 @@ function playerShoot() {
       y: barrelTipY,
       width: bulletConfig.width,
       height: bulletConfig.height,
-      color: bulletConfig.color,
+      color: currentBulletColor, // MODIFIED
       speed: bulletConfig.speed
     });
 
@@ -387,7 +388,7 @@ function playerShoot() {
       y: barrelTipY,
       width: bulletConfig.width,
       height: bulletConfig.height,
-      color: bulletConfig.color,
+      color: currentBulletColor, // MODIFIED
       speed: bulletConfig.speed
     });
   }
@@ -602,14 +603,33 @@ function updateAndDrawFallingObjects(ctx) {
                 ctx.fillRect(currentX, startY, barrelIconWidth, barrelIconHeight);
             }
         } else if (obj.type === "powerup_explosive") {
-            const centerX = obj.x + obj.width / 2;
-            const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
-            ctx.fillStyle = obj.color;
-            ctx.fill();
-            ctx.closePath();
+            // New drawing logic for powerup_explosive:
+            // Main body (3 sticks of dynamite)
+            const stickCount = 3;
+            const stickWidth = obj.width / 5; // e.g., 4px for a 20px obj.width
+            const stickHeight = obj.height * 0.75; // e.g., 15px for a 20px obj.height
+            const spaceBetweenSticks = obj.width / 15; // Approx 1-2px spacing
+
+            const totalSticksWidth = stickCount * stickWidth + (stickCount - 1) * spaceBetweenSticks;
+            const startXSticks = obj.x + (obj.width - totalSticksWidth) / 2; // Center the group of sticks
+            const startYSticks = obj.y + (obj.height - stickHeight) / 2;    // Center sticks vertically
+
+            ctx.fillStyle = obj.color; // POWERUP_EXPLOSIVE_COLOR (OrangeRed '#FF4500')
+            for (let i_stick = 0; i_stick < stickCount; i_stick++) { // Renamed loop variable
+                const currentX = startXSticks + i_stick * (stickWidth + spaceBetweenSticks);
+                ctx.fillRect(currentX, startYSticks, stickWidth, stickHeight);
+            }
+
+            // Fuse on the middle stick
+            const fuseWidth = 3;
+            const fuseHeight = 6; // Make fuse a bit longer
+            // Calculate center X of the middle stick (index 1)
+            const middleStickCenterX = startXSticks + 1 * (stickWidth + spaceBetweenSticks) + (stickWidth / 2);
+
+            ctx.fillStyle = '#555555'; // Dark gray for fuse
+            // Position fuse to stick out from the top of the middle stick
+            ctx.fillRect(middleStickCenterX - fuseWidth / 2, startYSticks - fuseHeight + (stickHeight*0.1), fuseWidth, fuseHeight);
+                                                                            // + (stickHeight*0.1) to slightly embed fuse base
         } else {
             ctx.fillStyle = obj.color;
             ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
@@ -1354,7 +1374,7 @@ function updateAndDrawBullets() {
             createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color);
 
             if (player.hasExplosiveBullets) {
-                createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 0.75);
+                createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 1.0);
                 enemies.forEach(otherEnemy => {
                     if (otherEnemy.alive && otherEnemy !== enemy) {
                         const dist = Math.sqrt(
@@ -1408,7 +1428,7 @@ function updateAndDrawBullets() {
             block.alive = false;
 
             if (player.hasExplosiveBullets) {
-                createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 0.75);
+                createExplosion(impactX, impactY, BULLET_EXPLOSION_COLOR, BULLET_EXPLOSION_PARTICLE_COUNT, 1.0);
                 barriers.forEach(barrier => {
                     barrier.blocks.forEach(otherBlock => {
                         if (otherBlock.alive && otherBlock !== block) {
@@ -1761,14 +1781,33 @@ function gameLoop() {
                 ctx.fillRect(currentX, startY, barrelIconWidth, barrelIconHeight);
             }
         } else if (obj.type === "powerup_explosive") {
-            const centerX = obj.x + obj.width / 2;
-            const centerY = obj.y + obj.height / 2;
-            const radius = obj.width / 2;
-            context.beginPath();
-            context.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
-            context.fillStyle = obj.color;
-            ctx.fill();
-            ctx.closePath();
+            // New drawing logic for powerup_explosive:
+            // Main body (3 sticks of dynamite)
+            const stickCount = 3;
+            const stickWidth = obj.width / 5; // e.g., 4px for a 20px obj.width
+            const stickHeight = obj.height * 0.75; // e.g., 15px for a 20px obj.height
+            const spaceBetweenSticks = obj.width / 15; // Approx 1-2px spacing
+
+            const totalSticksWidth = stickCount * stickWidth + (stickCount - 1) * spaceBetweenSticks;
+            const startXSticks = obj.x + (obj.width - totalSticksWidth) / 2; // Center the group of sticks
+            const startYSticks = obj.y + (obj.height - stickHeight) / 2;    // Center sticks vertically
+
+            context.fillStyle = obj.color; // POWERUP_EXPLOSIVE_COLOR (OrangeRed '#FF4500')
+            for (let i_stick = 0; i_stick < stickCount; i_stick++) { // Renamed loop variable
+                const currentX = startXSticks + i_stick * (stickWidth + spaceBetweenSticks);
+                context.fillRect(currentX, startYSticks, stickWidth, stickHeight);
+            }
+
+            // Fuse on the middle stick
+            const fuseWidth = 3;
+            const fuseHeight = 6; // Make fuse a bit longer
+            // Calculate center X of the middle stick (index 1)
+            const middleStickCenterX = startXSticks + 1 * (stickWidth + spaceBetweenSticks) + (stickWidth / 2);
+
+            context.fillStyle = '#555555'; // Dark gray for fuse
+            // Position fuse to stick out from the top of the middle stick
+            context.fillRect(middleStickCenterX - fuseWidth / 2, startYSticks - fuseHeight + (stickHeight*0.1), fuseWidth, fuseHeight);
+                                                                            // + (stickHeight*0.1) to slightly embed fuse base
         } else { // Fallback for any other types, or if type is undefined
             context.fillStyle = obj.color || 'gray'; // Default to gray if color is missing
             context.fillRect(obj.x, obj.y, obj.width, obj.height);
@@ -1822,3 +1861,5 @@ function gameLoop() {
 
 initializeStars();
 gameLoop();
+
+```
