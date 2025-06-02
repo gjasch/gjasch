@@ -192,6 +192,8 @@ let onScreenControlsToggleButton = {};
 let backButton = {};
 let gameOverToTitleButton = {};
 let readyButtonLevelComplete = {};
+let resumeButton = {};
+let pauseToTitleButton = {};
 // continueButtonGameOver will be defined locally in drawing/click handling for game over
 
 const buttonHeight = 50; // General button height for menu buttons
@@ -696,9 +698,9 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y + obj.height > playerVisualTopY) {
                 player.isInvincible = true;
                 player.invincibilityTimer = INVINCIBILITY_DURATION_FRAMES;
-                // powerupMessage = "Shield Active!"; // DELETE
-                // activePowerupNameForMessage = "shield"; // DELETE
-                // activePowerupTimerDisplay = player.invincibilityTimer; // DELETE
+                // powerupMessage = "Shield Active!"; // DELETED
+                // activePowerupNameForMessage = "shield"; // DELETED
+                // activePowerupTimerDisplay = player.invincibilityTimer; // DELETED
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -710,9 +712,9 @@ function updateAndDrawFallingObjects(ctx) {
                 player.hasAutoFire = true;
                 player.autoFireTimer = AUTOFIRE_DURATION_FRAMES;
                 player.autoFireNextShotTimer = 0;
-                // powerupMessage = "Auto Fire Active!"; // DELETE
-                // activePowerupNameForMessage = "autofire"; // DELETE
-                // activePowerupTimerDisplay = player.autoFireTimer; // DELETE
+                // powerupMessage = "Auto Fire Active!"; // DELETED
+                // activePowerupNameForMessage = "autofire"; // DELETED
+                // activePowerupTimerDisplay = player.autoFireTimer; // DELETED
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -723,9 +725,9 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y + obj.height > playerVisualTopY) {
                 player.hasDualBarrel = true;
                 player.dualBarrelTimer = DUALBARREL_DURATION_FRAMES;
-                // powerupMessage = "Dual Barrel Active!"; // DELETE
-                // activePowerupNameForMessage = "dualbarrel"; // DELETE
-                // activePowerupTimerDisplay = player.dualBarrelTimer; // DELETE
+                // powerupMessage = "Dual Barrel Active!"; // DELETED
+                // activePowerupNameForMessage = "dualbarrel"; // DELETED
+                // activePowerupTimerDisplay = player.dualBarrelTimer; // DELETED
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -736,9 +738,9 @@ function updateAndDrawFallingObjects(ctx) {
                 obj.y + obj.height > playerVisualTopY) {
                 player.hasExplosiveBullets = true;
                 player.explosiveBulletsTimer = EXPLOSIVE_BULLETS_DURATION_FRAMES;
-                // powerupMessage = "Explosive Bullets Active!"; // DELETE
-                // activePowerupNameForMessage = "explosive"; // DELETE
-                // activePowerupTimerDisplay = player.explosiveBulletsTimer; // DELETE
+                // powerupMessage = "Explosive Bullets Active!"; // DELETED
+                // activePowerupNameForMessage = "explosive"; // DELETED
+                // activePowerupTimerDisplay = player.explosiveBulletsTimer; // DELETED
                 fallingObjects.splice(i, 1);
                 continue;
             }
@@ -776,6 +778,16 @@ function resetPlayerPosition() {
   player.explosiveBulletsTimer = 0;
 }
 
+function proceedToNextLevel() {
+    initializeEnemies();
+    initializeBarriers();
+    resetPlayerPosition();  // This resets player.isInvincible, player.hasAutoFire etc.
+    bullets = [];
+    enemyBullets = [];
+    particles = [];
+    fallingObjects = [];
+    gameState = "playing";
+}
 
 function startGame(isContinuing = false) {
   if (!isContinuing) {
@@ -820,29 +832,89 @@ function drawScore(ctx) {
     ctx.textAlign = "left";
 }
 
-// Old function - to be deleted
-function drawPowerupMessage(ctx) {
-    if (powerupMessage !== "") { // Only draw if there's an active message
-        const mainMessageY = 60;
-        const lineHeight = 25;
-        const mainFontSize = 20;
-        const timerFontSize = 16;
+function drawActivePowerupMessages(ctx) {
+    let yPos = 70; // Starting Y position for the first message (below score/level)
+    const lineHeightIncrement = 22; // For 18px font, this gives some space
+    const messageFont = "18px Arial";
+    const messageColor = "yellow";
 
-        ctx.fillStyle = "yellow";
-        ctx.font = mainFontSize + "px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(powerupMessage, canvas.width / 2, mainMessageY);
+    ctx.fillStyle = messageColor;
+    ctx.font = messageFont;
+    ctx.textAlign = "center";
 
-        if (activePowerupTimerDisplay > 0) {
-            const remainingSeconds = (activePowerupTimerDisplay / 60).toFixed(1);
-            const timerMessage = "(" + remainingSeconds + " seconds remaining)";
-
-            ctx.font = "italic " + timerFontSize + "px Arial";
-            ctx.fillText(timerMessage, canvas.width / 2, mainMessageY + lineHeight);
-        }
-
-        ctx.textAlign = "left";
+    // Shield Power-Up
+    if (player.isInvincible && player.invincibilityTimer > 0) {
+        const remainingSeconds = (player.invincibilityTimer / 60).toFixed(1);
+        const message = "Shield Active! (" + remainingSeconds + "s)";
+        ctx.fillText(message, canvas.width / 2, yPos);
+        yPos += lineHeightIncrement;
     }
+
+    // Auto-Fire Power-Up
+    if (player.hasAutoFire && player.autoFireTimer > 0) {
+        const remainingSeconds = (player.autoFireTimer / 60).toFixed(1);
+        const message = "Auto Fire Active! (" + remainingSeconds + "s)";
+        ctx.fillText(message, canvas.width / 2, yPos);
+        yPos += lineHeightIncrement;
+    }
+
+    // Dual Barrel Power-Up
+    if (player.hasDualBarrel && player.dualBarrelTimer > 0) {
+        const remainingSeconds = (player.dualBarrelTimer / 60).toFixed(1);
+        const message = "Dual Barrel Active! (" + remainingSeconds + "s)";
+        ctx.fillText(message, canvas.width / 2, yPos);
+        yPos += lineHeightIncrement;
+    }
+
+    // Explosive Bullets Power-Up
+    if (player.hasExplosiveBullets && player.explosiveBulletsTimer > 0) {
+        const remainingSeconds = (player.explosiveBulletsTimer / 60).toFixed(1);
+        const message = "Explosive Bullets! (" + remainingSeconds + "s)";
+        ctx.fillText(message, canvas.width / 2, yPos);
+        yPos += lineHeightIncrement;
+    }
+
+    ctx.textAlign = "left"; // Reset textAlign
+}
+
+function drawPauseMenu(ctx) {
+    // 1. Draw semi-transparent overlay
+    ctx.fillStyle = "rgba(0, 0, 0, 0.65)"; // Adjust alpha for desired dimming
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Draw "Paused" text
+    ctx.fillStyle = "white";
+    ctx.font = "48px Arial"; // Large "Paused" text
+    ctx.textAlign = "center";
+    ctx.textBaseline = 'middle'; // Align text vertically to its center
+    ctx.fillText("Paused", canvas.width / 2, canvas.height / 3);
+
+    // 3. Define and Draw "Resume" Button
+    // buttonHeight should be globally available (e.g., const buttonHeight = 50;)
+    const resumeButtonWidth = 220;
+    resumeButton = { // Assign to global resumeButton object
+        x: canvas.width / 2 - resumeButtonWidth / 2,
+        y: canvas.height / 2, // Center of screen, adjust as needed
+        width: resumeButtonWidth,
+        height: buttonHeight,
+        label: "Resume"
+    };
+    drawButton(resumeButton); // Assumes drawButton is globally defined
+
+    // 4. Define and Draw "Main Menu" Button
+    const pauseToTitleButtonWidth = 220;
+    pauseToTitleButton = { // Assign to global pauseToTitleButton object
+        x: canvas.width / 2 - pauseToTitleButtonWidth / 2,
+        y: resumeButton.y + resumeButton.height + 20, // Position below Resume button with 20px gap
+        width: pauseToTitleButtonWidth,
+        height: buttonHeight,
+        label: "Main Menu"
+    };
+    drawButton(pauseToTitleButton);
+
+    // Reset text alignment if changed by drawButton or locally
+    ctx.textAlign = "left";
+    ctx.textBaseline = 'alphabetic'; // Reset to default if changed
 }
 
 
@@ -1006,22 +1078,26 @@ function handlePlayerFiring() {
 
 // Event Listeners
 document.addEventListener('keydown', function(event) {
-  if (gameState === "playing") {
-    if (event.key === 'ArrowLeft') {
-      player.isMovingLeftKeyboard = true;
-    } else if (event.key === 'ArrowRight') {
-      player.isMovingRightKeyboard = true;
-    } else if (event.code === 'Space') {
-      if (!player.isTryingToFireKeyboard && !player.hasAutoFire) {
-          playerShoot();
-      }
-      player.isTryingToFireKeyboard = true;
+    if (event.code === 'Space') {
+        if (gameState === "levelComplete") {
+            proceedToNextLevel();
+        } else if (gameState === "playing") {
+            if (!player.isTryingToFireKeyboard && !player.hasAutoFire) {
+                playerShoot();
+            }
+            player.isTryingToFireKeyboard = true;
+        }
+    } else if (gameState === "playing") {
+        if (event.key === 'ArrowLeft') {
+            player.isMovingLeftKeyboard = true;
+        } else if (event.key === 'ArrowRight') {
+            player.isMovingRightKeyboard = true;
+        }
     }
-  }
 });
 
 document.addEventListener('keyup', function(event) {
-  if (gameState !== "playing") return;
+  if (gameState !== "playing") return; // Only handle keyup for playing state related actions
   if (event.key === 'ArrowLeft') {
     player.isMovingLeftKeyboard = false;
   } else if (event.key === 'ArrowRight') {
@@ -1078,49 +1154,60 @@ canvas.addEventListener('click', function(event) {
     }
   } else if (gameState === "levelComplete") {
     if (isInside(mousePos, readyButtonLevelComplete)) {
-        initializeEnemies();
-        initializeBarriers();
-        resetPlayerPosition();
-        bullets = [];
-        enemyBullets = [];
-        particles = [];
-        fallingObjects = [];
-
-        // powerupMessage = ""; // These are no longer global
-        // activePowerupNameForMessage = "";
-        // activePowerupTimerDisplay = 0;
-
-        gameState = "playing";
+        proceedToNextLevel();
     }
-  }
+  } else if (gameState === "paused") {
+        // mousePos is already defined from the top of the event listener
+
+        // resumeButton and pauseToTitleButton are global objects whose properties
+        // (x, y, width, height, label) were set by the last call to drawPauseMenu().
+
+        if (isInside(mousePos, resumeButton)) {
+            gameState = "playing"; // Resume the game
+        } else if (isInside(mousePos, pauseToTitleButton)) {
+            // Reset game state fully before going to title,
+            // so a "New Game" from title is truly new.
+            startGame(false);
+            gameState = "title";  // Go to title screen
+        }
+    }
 });
 
 canvas.addEventListener('touchstart', function(e) {
-  if (gameState === "playing" && onScreenControlsEnabled) {
     let actionTaken = false;
     for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      const touchPos = getMousePos(canvas, touch);
-      if (isInside(touchPos, osLeftButton)) {
-        player.isMovingLeftTouch = true;
-        actionTaken = true;
-      }
-      if (isInside(touchPos, osRightButton)) {
-        player.isMovingRightTouch = true;
-        actionTaken = true;
-      }
-      if (isInside(touchPos, osFireButton)) {
-        if (!player.isTryingToFireTouch && !player.hasAutoFire) {
-            playerShoot();
+        const touch = e.changedTouches[i];
+        const touchPos = getMousePos(canvas, touch);
+
+        if (gameState === "levelComplete") {
+            if (isInside(touchPos, readyButtonLevelComplete)) {
+                proceedToNextLevel();
+                actionTaken = true;
+                break;
+            }
+        } else if (gameState === "playing" && onScreenControlsEnabled) {
+            if (isInside(touchPos, osLeftButton)) {
+                player.isMovingLeftTouch = true;
+                actionTaken = true;
+            }
+            if (isInside(touchPos, osRightButton)) {
+                player.isMovingRightTouch = true;
+                actionTaken = true;
+            }
+            if (isInside(touchPos, osFireButton)) {
+                if (!player.isTryingToFireTouch && !player.hasAutoFire) {
+                    playerShoot();
+                }
+                player.isTryingToFireTouch = true;
+                actionTaken = true;
+            }
         }
-        player.isTryingToFireTouch = true;
-        actionTaken = true;
-      }
+        // No specific touch actions for "paused", "title", "settings", "gameOver" on osFireButton
+        // as those are handled by their specific large menu buttons via the main 'click' listener.
     }
     if (actionTaken) {
-      e.preventDefault();
+        e.preventDefault();
     }
-  }
 }, { passive: false });
 
 canvas.addEventListener('touchend', function(e) {
@@ -1163,6 +1250,16 @@ canvas.addEventListener('touchend', function(e) {
     }
   }
 }, { passive: false });
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === "Escape") {
+        if (gameState === "playing") {
+            gameState = "paused";
+        } else if (gameState === "paused") {
+            gameState = "playing"; // Escape key also resumes
+        }
+    }
+});
 
 // --- Helper functions for gameLoop "playing" state ---
 function updatePlayer() {
@@ -1557,6 +1654,138 @@ function gameLoop() {
     if (onScreenControlsEnabled) {
       drawOnScreenControls();
     }
+  } else if (gameState === "paused") {
+    // --- Draw the static game scene (what was visible when paused) ---
+    // 1. Clear with black and draw stars (standard background)
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    drawStars(context);
+
+    // 2. Draw game elements in their current state (no updates)
+    drawPlayer();
+    drawBarriers(context);
+
+    // Draw static player bullets
+    context.fillStyle = bulletConfig.color;
+    for (let i = 0; i < bullets.length; i++) {
+        const bullet = bullets[i];
+        context.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    }
+
+    // Draw static enemy bullets
+    context.fillStyle = enemyBulletConfig.color;
+    for (let i = 0; i < enemyBullets.length; i++) {
+        const bullet = enemyBullets[i];
+        context.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    }
+
+    // Draw static alive enemies
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        if (enemy.alive) {
+            drawAlien(enemy, context);
+        }
+    }
+
+    // Draw static particles (using their last known alpha)
+    for (let i = 0; i < particles.length; i++) {
+        const particle = particles[i];
+        // Only draw if it still has some theoretical lifespan, though alpha handles visibility
+        if (particle.lifespan > 0) {
+            context.globalAlpha = Math.max(0, particle.lifespan / particle.maxLifespan);
+            context.fillStyle = particle.color;
+            context.fillRect(particle.x, particle.y, particle.size, particle.size);
+        }
+    }
+    context.globalAlpha = 1.0; // Reset global alpha
+
+    // Draw static falling objects
+    for (let i = 0; i < fallingObjects.length; i++) {
+        const obj = fallingObjects[i];
+        // Replicating drawing logic from updateAndDrawFallingObjects
+        if (obj.type === "bomb") {
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2.8;
+            context.beginPath();
+            context.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            context.fillStyle = obj.color;
+            context.fill();
+            ctx.closePath();
+            const fuseWidth = 4;
+            const fuseHeight = 6;
+            const fuseX = centerX - fuseWidth / 2;
+            const fuseY = centerY - radius - fuseHeight + (radius * 0.2);
+            context.fillStyle = '#555555';
+            context.fillRect(fuseX, fuseY, fuseWidth, fuseHeight);
+            if (Math.floor(Date.now() / 250) % 2 === 0) {
+                context.fillStyle = 'orange';
+                const sparkSize = 3;
+                context.fillRect(fuseX + fuseWidth / 2 - sparkSize / 2, fuseY - sparkSize / 2, sparkSize, sparkSize);
+            }
+        } else if (obj.type === "powerup_shield") {
+            context.fillStyle = obj.color;
+            context.beginPath();
+            context.moveTo(obj.x, obj.y);
+            ctx.lineTo(obj.x + obj.width, obj.y);
+            ctx.lineTo(obj.x + obj.width, obj.y + obj.height * 0.65);
+            ctx.lineTo(obj.x + obj.width / 2, obj.y + obj.height);
+            ctx.lineTo(obj.x, obj.y + obj.height * 0.65);
+            ctx.closePath();
+            context.fill();
+        } else if (obj.type === "powerup_autofire") {
+            context.fillStyle = obj.color;
+            const iconCount = 3;
+            const iconWidth = obj.width / 4.5;
+            const iconHeight = obj.height * 0.65;
+            const totalIconsWidth = iconCount * iconWidth;
+            const spaceBetweenIcons = iconWidth / 2.5;
+            const totalGroupWidth = totalIconsWidth + (iconCount - 1) * spaceBetweenIcons;
+            const startXOffset = (obj.width - totalGroupWidth) / 2;
+            const startY = obj.y + (obj.height - iconHeight) / 2;
+            for (let k_icon = 0; k_icon < iconCount; k_icon++) {
+                const currentX = obj.x + startXOffset + k_icon * (iconWidth + spaceBetweenIcons);
+                ctx.fillRect(currentX, startY, iconWidth, iconHeight);
+            }
+        } else if (obj.type === "powerup_dualbarrel") {
+            context.fillStyle = obj.color;
+            const barrelCount = 2;
+            const barrelIconWidth = obj.width / 4;
+            const barrelIconHeight = obj.height * 0.7;
+            const spacingBetweenBarrels = obj.width / 8;
+            const totalGroupWidth = (barrelCount * barrelIconWidth) + ((barrelCount - 1) * spacingBetweenBarrels);
+            const startXOverall = obj.x + (obj.width - totalGroupWidth) / 2;
+            const startY = obj.y + (obj.height - barrelIconHeight) / 2;
+            for (let k_barrel = 0; k_barrel < barrelCount; k_barrel++) {
+                const currentX = startXOverall + k_barrel * (barrelIconWidth + spacingBetweenBarrels);
+                ctx.fillRect(currentX, startY, barrelIconWidth, barrelIconHeight);
+            }
+        } else if (obj.type === "powerup_explosive") {
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y + obj.height / 2;
+            const radius = obj.width / 2;
+            context.beginPath();
+            context.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            context.fillStyle = obj.color;
+            ctx.fill();
+            ctx.closePath();
+        } else { // Fallback for any other types, or if type is undefined
+            context.fillStyle = obj.color || 'gray'; // Default to gray if color is missing
+            context.fillRect(obj.x, obj.y, obj.width, obj.height);
+        }
+    }
+
+    // 3. Draw UI elements (score, active power-up messages)
+    drawScore(context);
+    drawActivePowerupMessages(context); // Timers won't advance as updatePlayer isn't called
+
+    // 4. Draw on-screen controls if they are enabled (they will be static)
+    if (onScreenControlsEnabled) {
+        drawOnScreenControls();
+    }
+
+    // --- Then, draw the pause menu on top ---
+    drawPauseMenu(context); // This draws the semi-transparent overlay and buttons
   } else if (gameState === "gameOver") {
     context.fillStyle = 'black';
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -1593,3 +1822,35 @@ function gameLoop() {
 
 initializeStars();
 gameLoop();
+
+```
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
+
+[end of game.js]
