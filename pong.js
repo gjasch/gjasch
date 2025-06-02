@@ -194,22 +194,26 @@ const WINNING_SCORE = 5;
 
 // AI Behavior Parameters
 // const AI_REACTION_ZONE_X = CANVAS_WIDTH / 2; // (Currently unused)
-const AI_MAX_ERROR_AT_MAX_DISTANCE = PADDLE_HEIGHT * 0.00; // Max random error in Y prediction when ball is furthest
-const AI_MIN_ERROR_AT_IMPACT = PADDLE_HEIGHT * 0.00; // Min random error when ball is very close
-const AI_TARGET_CHANGE_THRESHOLD = PADDLE_HEIGHT * 0.00; // Min change in targetY (from current paddle center) for AI to adjust its dy
+// const AI_MAX_ERROR_AT_MAX_DISTANCE = PADDLE_HEIGHT * 0.25; // Max random error in Y prediction when ball is furthest
+// const AI_MIN_ERROR_AT_IMPACT = PADDLE_HEIGHT * 0.05; // Min random error when ball is very close
+// const AI_TARGET_CHANGE_THRESHOLD = PADDLE_HEIGHT * 0.20; // Min change in targetY (from current paddle center) for AI to adjust its dy
 // const AI_MISS_CHANCE = 0.05; // (Currently unused)
 
-// Enhanced AI Behavior Parameters
-const AI_REACTION_INTERVAL = 1000; // Milliseconds between AI reaction/prediction updates
+// const AI_REACTION_INTERVAL = 500; // Milliseconds between AI reaction/prediction updates - Part of Advanced AI
+
+// Simple AI Parameters
+const AI_TRACKING_SPEED_FACTOR = 0.08; // Adjusts how quickly AI paddle reacts to ball's Y position
+const MAX_AI_PADDLE_SPEED = PADDLE_SPEED * 0.85; // Maximum speed for the AI paddle
+
 
 let winnerMessage = "";
 let currentGameState = STATE_TITLE_SCREEN;
 let gameMode = 'two_player';
 let onScreenControlsEnabled = false;
 
-// Enhanced AI State Variables
-let aiLastReactionTime = 0;
-let aiTargetY = player2Paddle.y + player2Paddle.height / 2;
+// Enhanced AI State Variables (Commented out as they belong to advanced AI)
+// let aiLastReactionTime = 0;
+// let aiTargetY = player2Paddle.y + player2Paddle.height / 2;
 
 let countdownValue = 3;
 let lastCountdownTime = 0;
@@ -281,57 +285,33 @@ function updatePaddles() {
     } else if (player1Paddle.y + player1Paddle.height > CANVAS_HEIGHT) {
         player1Paddle.y = CANVAS_HEIGHT - player1Paddle.height;
     }
+
+    // Player 2 paddle movement
     if (gameMode === 'one_player' && currentGameState === STATE_PLAYING) {
-        if (ball.dx > 0 && (Date.now() - aiLastReactionTime > AI_REACTION_INTERVAL)) {
-            const dxToPaddle = player2Paddle.x - ball.x;
-            const timeToReachPaddle = dxToPaddle / ball.dx;
-            let predictedY = ball.y + ball.dy * timeToReachPaddle;
-            if (predictedY < BALL_RADIUS) {
-                predictedY = BALL_RADIUS + (BALL_RADIUS - predictedY);
-            } else if (predictedY > CANVAS_HEIGHT - BALL_RADIUS) {
-                predictedY = (CANVAS_HEIGHT - BALL_RADIUS) - (predictedY - (CANVAS_HEIGHT - BALL_RADIUS));
-            }
-            predictedY = Math.max(BALL_RADIUS, Math.min(CANVAS_HEIGHT - BALL_RADIUS, predictedY));
-            let distanceFactor = 0;
-            if (dxToPaddle > 0) {
-                 distanceFactor = Math.min(1, Math.max(0, dxToPaddle / player2Paddle.x));
-            }
-            const currentErrorMargin = AI_MIN_ERROR_AT_IMPACT +
-                                     (AI_MAX_ERROR_AT_MAX_DISTANCE - AI_MIN_ERROR_AT_IMPACT) * distanceFactor;
-            const newPotentialAiTargetY = predictedY + (Math.random() - 0.5) * 2 * currentErrorMargin;
+        // --- Simple AI: Tracks ball's Y-coordinate ---
+        const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
+        const distanceToBallY = ball.y - paddleCenterY;
 
-            // Clamp this new potential target
-            const clampedNewPotentialAiTargetY = Math.max(player2Paddle.height / 2, Math.min(CANVAS_HEIGHT - player2Paddle.height / 2, newPotentialAiTargetY));
+        // Movement is proportional to distance, scaled by factor
+        player2Paddle.dy = distanceToBallY * AI_TRACKING_SPEED_FACTOR;
 
-            const paddleCenterY = player2Paddle.y + player2Paddle.height / 2;
-
-            // Only update the global aiTargetY if the new prediction is significantly different from the paddle's current center
-            if (Math.abs(clampedNewPotentialAiTargetY - paddleCenterY) > AI_TARGET_CHANGE_THRESHOLD) {
-                aiTargetY = clampedNewPotentialAiTargetY;
-            }
-            // Note: If not significantly different, aiTargetY (the committed target) remains unchanged from previous reaction.
-
-            aiLastReactionTime = Date.now();
-
-            // Always decide dy based on the current (potentially unchanged) global aiTargetY
-            const deadZone = PADDLE_HEIGHT * 0.1;
-            if (paddleCenterY < aiTargetY - deadZone) {
-                player2Paddle.dy = PADDLE_SPEED;
-            } else if (paddleCenterY > aiTargetY + deadZone) {
-                player2Paddle.dy = -PADDLE_SPEED;
-            } else {
-                player2Paddle.dy = 0;
-            }
+        // Cap AI speed
+        if (Math.abs(player2Paddle.dy) > MAX_AI_PADDLE_SPEED) {
+            player2Paddle.dy = Math.sign(player2Paddle.dy) * MAX_AI_PADDLE_SPEED;
         }
-        // If it's not time to react, player2Paddle.dy keeps its value from the last reaction.
 
-        // Apply movement based on the current player2Paddle.dy
+        // Apply movement
         player2Paddle.y += player2Paddle.dy;
 
     } else if (gameMode === 'two_player') {
         // Player 2 paddle is controlled by keyboard
         player2Paddle.y += player2Paddle.dy;
     }
+    // Note: If currentGameState is not STATE_PLAYING (e.g., countdown, paused),
+    // player2Paddle.dy for AI is not being actively set here.
+    // It would be 0 from state changes (like pause or countdown setup) or from keyup if it was 2P mode.
+
+    // Keep player 2 paddle within canvas bounds (common for both AI and human player)
     if (player2Paddle.y < 0) {
         player2Paddle.y = 0;
     } else if (player2Paddle.y + player2Paddle.height > CANVAS_HEIGHT) {
