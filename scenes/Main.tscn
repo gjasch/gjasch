@@ -1,0 +1,28 @@
+[gd_scene load_steps=5 format=3 uid="uid://c6vj0b0a0s0q"]
+
+[ext_resource type="PackedScene" uid="uid://b1c2d3e4f5g6" path="res://scenes/Player.tscn" id="Player_scn_abc12"]
+[ext_resource type="PackedScene" uid="uid://tree_scene_uid_789" path="res://scenes/Tree.tscn" id="Tree_scn_def45"]
+[sub_resource type="Sky" id="Sky_dey0j"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_0qj1x"]
+size = Vector2(20, 20)
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Sky_dey0j")
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_0qj1x")
+
+[node name="Player" parent="." instance=ExtResource("Player_scn_abc12")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="Tree" parent="." instance=ExtResource("Tree_scn_def45")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -5)
+
+[node name="Tree2" parent="." instance=ExtResource("Tree_scn_def45")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, -8)
+
+[node name="Tree3" parent="." instance=ExtResource("Tree_scn_def45")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 2)
