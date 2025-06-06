@@ -1,0 +1,89 @@
+[gd_scene load_steps=12 format=3 uid="uid://c6vj01owmmc5k"]
+
+[ext_resource type="Script" path="res://vr_setup.gd" id="1_vrs"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1x1x1"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Red"]
+albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="BoxShape3D" id="Col_Box_1x1x1"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Green"]
+albedo_color = Color(0, 1, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_r075"]
+radius = 0.75
+height = 1.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_Blue"]
+albedo_color = Color(0, 0, 1, 1)
+
+[sub_resource type="SphereShape3D" id="Col_Sphere_r075"]
+radius = 0.75
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ukvxp"]
+size = Vector2(20, 20)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_uif2n"]
+size = Vector2(20, 0.1, 20)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c23vf"]
+albedo_color = Color(0.4, 0.4, 0.4, 1)
+
+[node name="Main" type="Node3D"]
+
+[node name="XROrigin3D" type="XROrigin3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0) ; Set Y to 0
+script = ExtResource("1_vrs")
+
+[node name="XRCamera3D" type="XRCamera3D" parent="XROrigin3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0) ; Assuming average eye height of 1.8m
+
+[node name="LeftController" type="XRController3D" parent="XROrigin3D"]
+tracker = &"left_hand"
+
+[node name="RightController" type="XRController3D" parent="XROrigin3D"]
+tracker = &"right_hand"
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_ukvxp")
+surface_material_override/0 = SubResource("StandardMaterial3D_c23vf")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ground"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/StaticBody3D"]
+shape = SubResource("BoxShape3D_uif2n")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0) ; Positioned slightly below the mesh surface
+
+[node name="RedCube" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.5, -2)
+mesh = SubResource("BoxMesh_1x1x1")
+surface_material_override/0 = SubResource("Mat_Red")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="RedCube"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RedCube/StaticBody3D"]
+shape = SubResource("Col_Box_1x1x1")
+
+[node name="GreenCube" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1, -3)
+mesh = SubResource("BoxMesh_1x1x1")
+surface_material_override/0 = SubResource("Mat_Green")
+
+[node name="StaticBody3D2" type="StaticBody3D" parent="GreenCube"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GreenCube/StaticBody3D2"]
+shape = SubResource("Col_Box_1x1x1")
+
+[node name="BlueSphere" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, -4)
+mesh = SubResource("SphereMesh_r075")
+surface_material_override/0 = SubResource("Mat_Blue")
+
+[node name="StaticBody3D3" type="StaticBody3D" parent="BlueSphere"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BlueSphere/StaticBody3D3"]
+shape = SubResource("Col_Sphere_r075")

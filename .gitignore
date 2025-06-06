@@ -1,0 +1,31 @@
+# Godot-specific ignores
+.godot/
+*.translation
+*.remap
+*.gdnlib
+*.gdns
+*.gdn
+*.csproj
+*.sln
+*.swp
+*.swo
+# Mono-specific ignores
+.mono/
+bin/
+obj/
+# Asset-specific ignores
+export_presets.cfg
+*.import
+# Exported game files
+export/
+build/
+# User-specific ignores (optional)
+.vscode/
+.idea/
+*.user
+*.cfg~
+*~
+# MacOS specific
+.DS_Store
+# Windows specific
+Thumbs.db
