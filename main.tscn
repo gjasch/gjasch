@@ -28,7 +28,7 @@ radius = 0.75
 size = Vector2(20, 20)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_uif2n"]
-size = Vector2(20, 0.1, 20)
+size = Vector3(20, 0.1, 20)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c23vf"]
 albedo_color = Color(0.4, 0.4, 0.4, 1)
