@@ -12,6 +12,10 @@ size = Vector2(20, 20)
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Sky_dey0j")
 
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-45, -45, 0)
+shadow_enabled = true
+
 [node name="Ground" type="MeshInstance3D" parent="."]
 mesh = SubResource("PlaneMesh_0qj1x")
 
