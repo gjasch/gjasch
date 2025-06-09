@@ -1,0 +1,51 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildConfig section */
+		20B2480B250FE5A900D4058A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		20B2480C250FE5A900D4058A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End PBXBuildConfig section */
+
+/* Begin PBXProject section */
+		20B24802250FE5A900D4058A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1250;
+			};
+			buildConfigurationList = 20B2480A250FE5A900D4058A /* Build configuration list for PBXProject "KidsColoringApp" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 20B24803250FE5A900D4058A;
+			productRefGroup = 20B24804250FE5A900D4058A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				// Target can be added here later
+			);
+		};
+/* End PBXProject section */
+	};
+	rootObject = 20B24802250FE5A900D4058A /* Project object */;
+}
