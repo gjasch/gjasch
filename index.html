@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-D Viewer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>3-D Viewer</h1>
+
+    <div id="selection-menu">
+        <h2>Select a 3D Model</h2>
+        <ul id="file-list">
+            <!-- File list will be populated by script.ts -->
+        </ul>
+    </div>
+
+    <div id="viewer-container" style="display: none;">
+        <canvas id="model-canvas"></canvas>
+        <button id="back-button">Back to Selection</button>
+    </div>
+
+    <!-- three.js library -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js",
+                "three/examples/jsm/loaders/FBXLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FBXLoader.js",
+                "three/examples/jsm/loaders/OBJLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js"
+            }
+        }
+    </script>
+
+    <!-- Compiled TypeScript application -->
+    <script type="module" src="./dist/script.js"></script>
+</body>
+</html>
