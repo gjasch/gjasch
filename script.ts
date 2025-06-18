@@ -16,9 +16,9 @@ const modelCanvas = document.getElementById('model-canvas') as HTMLCanvasElement
 
 // Available 3D model files
 const modelFiles: string[] = [
-    "Strength_in_Stance_0617185714_texture.fbx",
-    "Strength_in_Stance_0617185815_texture.obj",
-    "base.fbx"
+    "assets/models/Strength_in_Stance_0617185714_texture.fbx",
+    "assets/models/Strength_in_Stance_0617185815_texture.obj",
+    "assets/models/base.fbx"
 ];
 
 // Three.js variables

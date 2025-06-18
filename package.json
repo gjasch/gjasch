@@ -1,16 +1,30 @@
 {
   "name": "app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "3D Model Viewer with Electron",
+  "main": "dist_electron/main.js",
   "scripts": {
+    "start": "concurrently \"npm:watch:renderer\" \"npm:watch:main\" \"npm:electron:start\"",
+    "electron:start": "wait-on dist/script.js dist_electron/main.js && electron .",
+    "compile:renderer": "tsc -p tsconfig.json",
+    "watch:renderer": "tsc -p tsconfig.json --watch",
+    "compile:main": "tsc -p tsconfig.electron.json",
+    "watch:main": "tsc -p tsconfig.electron.json --watch",
+    "build": "npm run compile:renderer && npm run compile:main && electron-builder",
+    "build:win": "npm run compile:renderer && npm run compile:main && electron-builder --win",
+    "build:mac": "npm run compile:renderer && npm run compile:main && electron-builder --mac",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gjasch/gjasch.git"
   },
-  "keywords": [],
+  "keywords": [
+    "3d",
+    "viewer",
+    "electron",
+    "threejs"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -18,8 +32,49 @@
     "url": "https://github.com/gjasch/gjasch/issues"
   },
   "homepage": "https://github.com/gjasch/gjasch#readme",
+  "dependencies": {
+    "electron-is-dev": "^3.0.1"
+  },
   "devDependencies": {
-    "@types/three": "^0.177.0",
-    "typescript": "^5.8.3"
+    "@types/three": "^0.160.0",
+    "typescript": "^5.3.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.example.threedviewer",
+    "productName": "3DViewer",
+    "directories": {
+      "output": "release",
+      "buildResources": "build_resources"
+    },
+    "files": [
+      "!node_modules/.cache/",
+      "!node_modules/**/CHANGELOG.md",
+      "!node_modules/**/README.md",
+      "!node_modules/**/LICENSE*",
+      "dist/",
+      "dist_electron/",
+      "index.html",
+      "style.css",
+      "assets/",
+      "node_modules/",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build_resources/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build_resources/icon.icns",
+      "category": "public.app-category.graphics-design"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build_resources/icon.png"
+    }
   }
 }

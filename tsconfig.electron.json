@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "./dist_electron",
+    "rootDir": ".",
+    "resolveJsonModule": true,
+    "sourceMap": true
+  },
+  "include": ["main.ts", "preload.ts"],
+  "exclude": ["node_modules", "dist"]
+}
